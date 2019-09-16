@@ -25,10 +25,10 @@ void error(string message);
 class Graph {
 	
 private:
-	string name;
-	bool directed;
-	ADJ_PAIR_LIST adj;
-	string file_suffix_to_remove;
+	string name; // known name of test instance
+	bool directed; // directed or undirected graph
+	ADJ_PAIR_LIST adj; // pairs of vertices and lists of the vertices they're connected to
+	string file_suffix_to_remove = ".clq-compliment.txt";
 
 public:
 	Graph(string path, string filename, bool directed=false);
