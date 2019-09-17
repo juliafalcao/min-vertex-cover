@@ -1,10 +1,10 @@
 #include "utils.h"
 
 /*
-aux function to handle errors that should stop the program
+aux function to handle errors that should print a message and stop the program
 */
 void error(string message) {
-	cout << message << endl;
+	cerr << message << endl;
 	exit(1);
 }
 
@@ -37,10 +37,27 @@ vector<string> list_dir(const char *path) {
 	}
 	
 	while ((entry = readdir(dir)) != NULL) {
-		cout << entry->d_name << endl;
-		filenames.push_back(entry->d_name);
+		char txt[5] = ".txt";
+		if (strstr(entry->d_name, txt)) { // to include only filenames that contain ".txt"
+			filenames.push_back(entry->d_name);
+		}
 	}
 	
 	closedir(dir);
 	return filenames;
+}
+
+/*
+function wrappers for time functionalities
+*/
+
+TIMESTAMP time() {
+	/* returns current point in time (to be used for t0) */
+	return high_resolution_clock::now();
+}
+
+long elapsed_time(TIMESTAMP since) {
+	/* returns elapsed time since given timestamp in milliseconds (to be used for t-t0) */
+	long dt = duration_cast<milliseconds>(time() - since).count();
+	return dt;
 }

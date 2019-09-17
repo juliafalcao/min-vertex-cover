@@ -1,5 +1,4 @@
 .vscode/
 test_data/
 dirent.h
-*.exe
 *.o

@@ -5,10 +5,11 @@
 Graph::Graph(string path, string filename, bool directed) {
 	this->directed = directed;
 
-	int s = file_suffix_to_remove.length();
+	int s = this->file_suffix_to_remove.length();
 	this->name = filename.substr(0, filename.length()-s);
 
-	this->adj = make_graph(path, filename);
+	this->adj = make_graph(path, filename, this->n);
+	cout << "Graph '" << this->name << "' with " << this->n << " vertices constructed successfully.";
 }
 
 /*
@@ -29,11 +30,12 @@ void Graph::print_adj() {
 /*
 function that opens graph file and builds its adjacency list
 */
-ADJ_PAIR_LIST Graph::make_graph(string path, string filename) {
+ADJ_PAIR_LIST Graph::make_graph(string path, string filename, int &n_vertices) {
 	string line;
-	ifstream file(filename, ifstream::binary);
+	string filepath = path + filename;
+	ifstream file(filepath, ifstream::binary);
 
-	if (!file.is_open()) error("Não foi possível abrir o arquivo.");
+	if (!file.is_open()) error("Não foi possível abrir o arquivo '" + filename + "'.");
 
 	int n = 0; // nodes
 	int m = 0; // edges
@@ -68,6 +70,7 @@ ADJ_PAIR_LIST Graph::make_graph(string path, string filename) {
 				i1 = find(line, " ", i+1);
 				buffer = line.substr(i+1, i1-i-1);
 				n = stoi(buffer); // number of vertices
+				n_vertices = n;
 
 				/* parse edge count here if needed */
 
