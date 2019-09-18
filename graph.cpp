@@ -6,9 +6,11 @@ Graph::Graph(string path, string filename, bool directed) {
 	this->directed = directed;
 
 	int s = this->file_suffix_to_remove.length();
-	this->name = filename.substr(0, filename.length()-s);
+	this->name = filename/*.substr(0, filename.length()-s)*/;
 
-	this->adj = make_graph(path, filename, this->n);
+	make_graph(path, filename, this->n);
+	this->m = this->edges.size();
+
 	cout << "Graph '" << this->name << "' with " << this->n << " vertices constructed successfully.";
 }
 
@@ -28,9 +30,20 @@ void Graph::print_adj() {
 }
 
 /*
-function that opens graph file and builds its adjacency list
+print edges list
 */
-ADJ_PAIR_LIST Graph::make_graph(string path, string filename, int &n_vertices) {
+void Graph::print_edges() {
+	cout << "{ ";
+	for (auto it = this->edges.begin(); it != this->edges.end(); it++) {
+		cout << "(" << it->first << ", " << it->second << ") ";
+	}
+	cout << "}" << endl;
+}
+
+/*
+function that opens graph file and builds its adjacency or edges list
+*/
+void Graph::make_graph(string path, string filename, int &n_vertices) {
 	string line;
 	string filepath = path + filename;
 	ifstream file(filepath, ifstream::binary);
@@ -44,6 +57,8 @@ ADJ_PAIR_LIST Graph::make_graph(string path, string filename, int &n_vertices) {
 	string buffer;
 	bool line0 = true;
 	ADJ_PAIR_LIST adj;
+	// INT_PAIR_LIST edges;
+	this->edges = {};
 
 	while (getline(file, line)) {
 		if (file.eof()) break;
@@ -100,11 +115,46 @@ ADJ_PAIR_LIST Graph::make_graph(string path, string filename, int &n_vertices) {
 					it->second.push_back(a);
 				}
 			}
+
+			// add edge to edges list
+			INT_PAIR edge = make_pair(a, b);
+			this->edges.push_back(edge);
 		}
 
 		line0 = false;
 	} // while
 
 	file.close();
-	return adj;
+
+	this->adj = adj; // TODO: edit this->adj inplace instead of saving later
+	return;
 } // make_graph
+
+void Graph::sort_adj_by_most_neighbors(void) {
+	sort(this->adj.begin(), this->adj.end(), most_values_comparator);
+}
+
+ADJ_PAIR_LIST Graph::get_adj_copy() { // TODO: move to utils.cpp
+	int v;
+	INT_LIST v_adj = {};
+	INT_LIST_PAIR v_adj_pair;
+	ADJ_PAIR_LIST copy;
+
+	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
+		v = it->first;
+		v_adj = {};
+		
+		for (auto vit = it->second.begin(); vit != it->second.end(); vit++) {
+			v_adj.push_back(*vit);
+		}
+
+		v_adj_pair = make_pair(v, v_adj);
+		copy.push_back(v_adj_pair);
+	}
+
+	return copy;
+}
+
+int Graph::get_m(void) {
+	return this->m;
+}

@@ -61,3 +61,11 @@ long elapsed_time(TIMESTAMP since) {
 	long dt = duration_cast<milliseconds>(time() - since).count();
 	return dt;
 }
+
+
+/*
+comparator to use for sorting
+*/
+bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b) {
+	return a.second.size() != b.second.size() ? a.second.size() > b.second.size() : a.first < b.first;
+}
