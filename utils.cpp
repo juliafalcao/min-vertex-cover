@@ -69,3 +69,33 @@ comparator to use for sorting
 bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b) {
 	return a.second.size() != b.second.size() ? a.second.size() > b.second.size() : a.first < b.first;
 }
+
+/*
+set operation A-B, removes from A all elements present in B and returns new A
+*/
+INT_LIST subtract(INT_LIST &A, INT_LIST &B) {
+	INT_LIST new_A = {};
+
+	for (int i = 0; i < A.size(); i++) {
+		if (find(B.begin(), B.end(), &A[i]) == B.end()) {
+			new_A.push_back(A[i]); // add to new_a elements not in b
+		}
+	}
+
+	return new_A;
+}
+
+/*
+print any ADJ_PAIR_LIST
+*/
+void print_adj(ADJ_PAIR_LIST adj) {
+	for (auto it = adj.begin(); it != adj.end(); it++) {
+		cout << it->first << ": { ";
+		
+		for (auto v_it = it->second.begin(); v_it != it->second.end(); v_it++) {
+			cout << *v_it << " ";
+		}
+
+		cout << "}" << endl;
+	}
+}
