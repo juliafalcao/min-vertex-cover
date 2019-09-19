@@ -6,8 +6,9 @@
 
 using namespace std;
 
+
 bool verify_vertex_cover(Graph &g, INT_SET cover);
-void most_neighbors_first(Graph &g);
+INT_SET most_neighbors_first(Graph &g, bool debug_mode=false);
 
 
 #endif

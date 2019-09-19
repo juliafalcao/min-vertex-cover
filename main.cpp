@@ -3,38 +3,91 @@
 
 #define GRAPHS_PATH "test_data/clique_complements/"
 
+typedef struct instance {
+	Graph graph; // actual class instance
+	string name;
+	int construction_time; // time to build graph, in ms
+	bool train; // true for training instance, false for validation instance
+	int runtime; // runtime
+	INT_SET mvc; // the vertex cover found
+	int mvc_size; // size of vertex cover
+} INSTANCE;
+
+typedef vector<INSTANCE> INSTANCE_LIST;
+
 
 int main(void) {
 	// get all filenames from dir
-	vector<string> filenames = list_dir(GRAPHS_PATH);
+	STR_LIST filenames = list_dir(GRAPHS_PATH);
 	int n_graphs = filenames.size();
-	int n_test = floor(0.2 * n_graphs); // separate 20% for testing
+
+	// separate into training and testing sets
+	int n_test = floor(0.2 * n_graphs); // 20% for testing
 	int n_train = n_graphs - n_test;
-	cout << "Separated " << n_train << " graphs for training and " << n_test << " graphs for validation." << endl;
+	STR_LIST train, test;
 
-	// load actual graphs
-	vector<Graph> graphs = {};
+	srand(1); // seed
 
-	for (auto it = filenames.begin(); it != filenames.end(); it++) {
-		cout << "Opening file: " << *it << endl;
-		TIMESTAMP t0 = time();
-		// Graph g(GRAPHS_PATH, *it);
-		Graph gt("", "test_graph.txt");
+	while (train.size() < n_train) { // make train set
+		string gf = filenames[rand() % n_graphs];
 
-		long dt = elapsed_time(t0);
-		cout << " [" << dt << "ms]" << endl;
-
-		// gt.print_edges();
-		// gt.print_adj();
-
-		most_neighbors_first(gt);
-
-		// graphs.push_back(g);
-		break;
+		if (find(train.begin(), train.end(), gf) == train.end()) {
+			// graph filename not yet in train set, add it
+			train.push_back(gf);
+		}
 	}
 
-	cout << "Finished." << endl;
+	for (auto it = filenames.begin(); it != filenames.end(); it++) { // make test set
+		if (find(train.begin(), train.end(), *it) == train.end()) {
+			// graph filename not in train set, add to test set
+			test.push_back(*it);
+		}
+	}
 
+	printf("Separated %d graphs for training and %d for validation.\n", n_train, n_test);
+
+	/* load actual instances and start heuristics */
+	INSTANCE_LIST instances;
+
+	printf("NAME\tN\tM\tCONSTRUCTION_TIME\tMVC SIZE\n\tRUNTIME\n"); // results table header
+
+	for (auto it = filenames.begin(); it != filenames.end(); it++) {
+		TIMESTAMP t0 = time();
+		INSTANCE inst{
+			Graph(GRAPHS_PATH, *it)
+		};
+		
+		inst.construction_time = elapsed_time(t0);		
+		inst.name = inst.graph.get_name();
+
+		if (find(train.begin(), train.end(), *it) != train.end()) { // check for filename, not instance/graph name!
+			inst.train = true;
+
+			// printf("Train instance '%s' ready: %d nodes, %d edges, built in %lms\n", inst.name, inst.graph.get_n(), inst.graph.get_m(), inst.construction_time);
+
+			/* run first heuristic */
+			t0 = time();
+			inst.mvc = most_neighbors_first(inst.graph);
+			long dt = elapsed_time(t0);
+
+			auto first = inst.mvc.begin();
+			if (*first != -1) { // it worked!
+				inst.mvc_size = inst.mvc.size();
+				inst.runtime = dt;
+
+				printf("%s\t%d\t%d\t%ld\t%d\t%ld\n", inst.name.c_str(), inst.graph.get_n(), inst.graph.get_m(), inst.construction_time, inst.mvc_size, inst.runtime);
+			}
+
+			else {
+				cout << inst.name << " - MNF returned error :(" << endl;
+			}
+
+		} else {
+			inst.train = false;
+			/* test here */
+		}
+
+	}
 
 	return 0;
 }

@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <chrono>
 #include <set>
+#include <algorithm>
 
 /* namespaces */
 using namespace std;
@@ -19,6 +20,7 @@ using namespace std::chrono;
 
 /* custom types */
 typedef vector<int> INT_LIST;
+typedef vector<string> STR_LIST;
 typedef pair<int, INT_LIST> INT_LIST_PAIR;
 typedef vector<INT_LIST_PAIR> ADJ_PAIR_LIST;
 typedef pair<int,int> INT_PAIR;

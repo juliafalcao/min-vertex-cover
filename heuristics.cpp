@@ -20,7 +20,7 @@ bool verify_vertex_cover(Graph &g, INT_SET cover) {
 /*
 first constructive heuristic: greedy adaptive?
 */
-void most_neighbors_first(Graph &g) {
+INT_SET most_neighbors_first(Graph &g, bool debug_mode) {
 	
 	ADJ_PAIR_LIST adjc = g.get_adj_copy(); // to manipulate without altering g
 
@@ -31,15 +31,16 @@ void most_neighbors_first(Graph &g) {
 	int newly_covered_edges = 0;
 	int new_edges = 0;
 
-	
 	INT_SET Vc; // vertex cover!
 	int v; // current vertex
 	INT_LIST v_adj; // current vertex's adjacencies list
 	INT_LIST s_v_adj; // subsequent vertices' adjacencies lists
 	
-	cout << "Original adj list:" << endl;
-	print_adj(adjc);
-	cout << endl;
+	if (debug_mode) {
+		cout << "Original adj list:" << endl;
+		print_adj(adjc);
+		cout << endl;
+	}
 
 	for (auto it = adjc.begin(); it != adjc.end(); it++) { // iterate through ordered adj list
 		v = it->first;
@@ -57,21 +58,26 @@ void most_neighbors_first(Graph &g) {
 		if (newly_covered_edges) {
 			// if v's adjacencies cover any new edges
 			Vc.insert(v);
-			cout << "Added " << v << " to vertex cover." << endl;
+			if (debug_mode) cout << "Added " << v << " to vertex cover." << endl;
 			covered_edges += newly_covered_edges;
 
 			if (covered_edges == total_edges) { // stop condition
 				if (verify_vertex_cover(g, Vc)) {
-					cout << "Finished! Vertex cover: ";
-					for (auto it = Vc.begin(); it != Vc.end(); it++) cout << *it << " ";
+					if (debug_mode) {
+						cout << "Finished! Vertex cover: ";
+						for (auto it = Vc.begin(); it != Vc.end(); it++) cout << *it << " ";
+					}
+					
 					break;
 				} else {
-					error("Algorithm finished but Vc didn't pass vertex cover verification :(");
+					if (debug_mode) cout << "Algorithm finished but Vc didn't pass vertex cover verification :(" << endl;
+					return INT_SET{-1};
 				}
 			}
 			
 			else if (covered_edges > total_edges) { // done fucked up
-				error("oops");
+				if (debug_mode) cout << "Covered edges count surpassed total edges :O" << endl;
+				return INT_SET{-1};
 			}
 
 			else { // prepare for next iteration
@@ -89,14 +95,16 @@ void most_neighbors_first(Graph &g) {
 				sort(it, adjc.end(), most_values_comparator);
 				// reorder the rest of adjc so that the modified adj lists are still sorted by largest to smallest
 
-				cout << "New adj list:" << endl;
-				print_adj(adjc);
+				if (debug_mode) {
+					cout << "New adj list:" << endl;
+					print_adj(adjc);
+				}
 			}
 		}
 
-		// else if v wouldn't cover any new edges: 
-		
+		// else if v wouldn't cover any new edges: onto the next one
+		if (debug_mode) printf("Vertex %d doesn't cover any new edges; continuing.", v);
 	}
 
-	return;
+	return Vc;
 }

@@ -38,7 +38,9 @@ public:
 	void make_graph(string path, string filename, int &n_vertices);
 	void sort_adj_by_most_neighbors(void);
 	ADJ_PAIR_LIST get_adj_copy();
+	int get_n();
 	int get_m();
+	string get_name();
 };
 
 

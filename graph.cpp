@@ -6,12 +6,10 @@ Graph::Graph(string path, string filename, bool directed) {
 	this->directed = directed;
 
 	int s = this->file_suffix_to_remove.length();
-	this->name = filename/*.substr(0, filename.length()-s)*/;
+	this->name = filename.substr(0, filename.length()-s);
 
 	make_graph(path, filename, this->n);
 	this->m = this->edges.size();
-
-	cout << "Graph '" << this->name << "' with " << this->n << " vertices constructed successfully.";
 }
 
 /*
@@ -155,6 +153,14 @@ ADJ_PAIR_LIST Graph::get_adj_copy() { // TODO: move to utils.cpp
 	return copy;
 }
 
+int Graph::get_n(void) {
+	return this->n;
+}
+
 int Graph::get_m(void) {
 	return this->m;
+}
+
+string Graph::get_name(void) {
+	return this->name;
 }

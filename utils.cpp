@@ -76,9 +76,9 @@ set operation A-B, removes from A all elements present in B and returns new A
 INT_LIST subtract(INT_LIST &A, INT_LIST &B) {
 	INT_LIST new_A = {};
 
-	for (int i = 0; i < A.size(); i++) {
-		if (find(B.begin(), B.end(), &A[i]) == B.end()) {
-			new_A.push_back(A[i]); // add to new_a elements not in b
+	for (auto it = A.begin(); it != A.end(); it++) {
+		if (find(B.begin(), B.end(), *it) == B.end()) {
+			new_A.push_back(*it); // add to new_a elements not in b
 		}
 	}
 
