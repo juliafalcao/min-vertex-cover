@@ -21,35 +21,33 @@ int main(void) {
 	STR_LIST filenames = list_dir(GRAPHS_PATH);
 	int n_graphs = filenames.size();
 
-	// separate into training and testing sets
-	int n_test = floor(0.2 * n_graphs); // 20% for testing
-	int n_train = n_graphs - n_test;
-	STR_LIST train, test;
+	/* separate into training and testing sets */
+	// int n_test = floor(0.2 * n_graphs); // 20% for testing
+	// int n_train = n_graphs - n_test;
+	// STR_LIST train, test;
 
-	srand(1); // seed
+	// srand(1); // seed
 
-	while (train.size() < n_train) { // make train set
-		string gf = filenames[rand() % n_graphs];
+	// while (train.size() < n_train) { // make train set
+	// 	string gf = filenames[rand() % n_graphs];
 
-		if (find(train.begin(), train.end(), gf) == train.end()) {
-			// graph filename not yet in train set, add it
-			train.push_back(gf);
-		}
-	}
+	// 	if (find(train.begin(), train.end(), gf) == train.end()) {
+	// 		// graph filename not yet in train set, add it
+	// 		train.push_back(gf);
+	// 	}
+	// }
 
-	for (auto it = filenames.begin(); it != filenames.end(); it++) { // make test set
-		if (find(train.begin(), train.end(), *it) == train.end()) {
-			// graph filename not in train set, add to test set
-			test.push_back(*it);
-		}
-	}
+	// for (auto it = filenames.begin(); it != filenames.end(); it++) { // make test set
+	// 	if (find(train.begin(), train.end(), *it) == train.end()) {
+	// 		// graph filename not in train set, add to test set
+	// 		test.push_back(*it);
+	// 	}
+	// }
 
-	printf("Separated %d graphs for training and %d for validation.\n", n_train, n_test);
+	// printf("Separated %d graphs for training and %d for validation.\n", n_train, n_test);
 
 	/* load actual instances and start heuristics */
 	INSTANCE_LIST instances;
-
-	printf("NAME\tN\tM\tCONSTRUCTION_TIME\tMVC SIZE\n\tRUNTIME\n"); // results table header
 
 	for (auto it = filenames.begin(); it != filenames.end(); it++) {
 		TIMESTAMP t0 = time();
@@ -60,31 +58,24 @@ int main(void) {
 		inst.construction_time = elapsed_time(t0);		
 		inst.name = inst.graph.get_name();
 
-		if (find(train.begin(), train.end(), *it) != train.end()) { // check for filename, not instance/graph name!
-			inst.train = true;
+		// printf("Instance '%s' ready: %d nodes, %d edges, built in %lms\n", inst.name, inst.graph.get_n(), inst.graph.get_m(), inst.construction_time);
 
-			// printf("Train instance '%s' ready: %d nodes, %d edges, built in %lms\n", inst.name, inst.graph.get_n(), inst.graph.get_m(), inst.construction_time);
+		/* run heuristic */
+		t0 = time();
+		// inst.mvc = most_neighbors_first(inst.graph, 5, 1, false); // most neighbors first
+		inst.mvc = random_multistart_most_neighbors_first(inst.graph, 5, 5, false); // random multistart
+		long dt = elapsed_time(t0);
 
-			/* run first heuristic */
-			t0 = time();
-			inst.mvc = most_neighbors_first(inst.graph);
-			long dt = elapsed_time(t0);
+		auto first = inst.mvc.begin();
+		if (*first != -1) { // it worked!
+			inst.mvc_size = inst.mvc.size();
+			inst.runtime = dt;
 
-			auto first = inst.mvc.begin();
-			if (*first != -1) { // it worked!
-				inst.mvc_size = inst.mvc.size();
-				inst.runtime = dt;
+			printf("%s\t%d\t%d\t%ld\t%d\t%ld\n", inst.name.c_str(), inst.graph.get_n(), inst.graph.get_m(), inst.construction_time, inst.runtime, inst.mvc_size);
+		}
 
-				printf("%s\t%d\t%d\t%ld\t%d\t%ld\n", inst.name.c_str(), inst.graph.get_n(), inst.graph.get_m(), inst.construction_time, inst.mvc_size, inst.runtime);
-			}
-
-			else {
-				cout << inst.name << " - MNF returned error :(" << endl;
-			}
-
-		} else {
-			inst.train = false;
-			/* test here */
+		else {
+			cout << inst.name << " - MNF returned error :(" << endl;
 		}
 
 	}
