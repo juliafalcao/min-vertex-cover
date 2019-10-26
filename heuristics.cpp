@@ -1,6 +1,5 @@
 #include "heuristics.h"
 
-
 /*
 verification algorithm
 */
@@ -16,11 +15,7 @@ bool verify_vertex_cover(Graph &g, INT_SET cover) {
 	return true;
 }
 
-
 /*
-first constructive heuristic: greedy adaptive?
-alpha = number of vertices with most neighbors to randomly choose from
-*/
 INT_SET most_neighbors_first(Graph &g, int alpha, int seed, bool debug_mode) {
 	if (alpha < 2) error("Alpha value has to be at least 2 (vertices).");
 
@@ -117,10 +112,9 @@ INT_SET most_neighbors_first(Graph &g, int alpha, int seed, bool debug_mode) {
 
 	return Vc;
 }
+*/
 
 /*
-random multistart variation that tests diferent alphas and returns better result
-*/
 INT_SET random_multistart_most_neighbors_first(Graph &g, int iterations, int alpha, bool debug_mode) {
 
 	if (iterations < 2) error("Number of iterations should be at least 2.");
@@ -131,6 +125,83 @@ INT_SET random_multistart_most_neighbors_first(Graph &g, int iterations, int alp
 
 	for (int i = 0; i < iterations; i++) {
 		result = most_neighbors_first(g, alpha, i, false); // pass iterator as seed for the random number generator
+		result_size = result.size();
+		// results.push_back(result);
+
+		if (debug_mode) printf("Iteration %d: found vertex cover of size %d.\n", i, result_size);
+
+		if (result_size < best_result_size) {
+			best_result = result;
+			best_result_size = result_size; // save obtained MVC as the best one yet
+		}
+	}
+
+	if (debug_mode) printf("%s - Best result: %d\n", g.get_name().c_str(), best_result_size);
+
+	return best_result;
+}
+*/
+
+// aux
+int rng(int i) {
+	return rand() % i;
+}
+
+/*
+simple greedy constructive heuristic
+iterates through all edges and, if the edge is uncovered, adds its vertex with the highest degree to vertex cover
+*/
+
+INT_SET simple_greedy(Graph &g, int seed, bool debug_mode) {
+	INT_SET Vc;
+	INT_PAIR current_edge;
+	int degree_a = 0, degree_b = 0, chosen = -1, a = -1, b = -1;
+	
+	INT_PAIR_LIST edges = g.get_edges_copy();
+	if (seed) { // shuffles array if seed is not 0
+		srand(seed);
+		random_shuffle(edges.begin(), edges.end(), rng);
+		if (debug_mode) printf("Shuffled edges successfully! First edge is: (%d, %d)\n", edges[0].first, edges[0].second);
+	}
+
+	for (auto it = edges.begin(); it != edges.end(); it++) {
+		current_edge = *it;
+		a = current_edge.first;
+		b = current_edge.second;
+
+		if ((find(Vc.begin(), Vc.end(), a) == Vc.end()) && (find(Vc.begin(), Vc.end(), b) == Vc.end())) { // neither a nor b is in vertex cover: edge is yet uncovered
+			degree_a = g.degree(current_edge.first);
+			degree_b = g.degree(current_edge.second);
+
+			if (degree_a > degree_b) {
+				chosen = current_edge.first;
+			} else {
+				chosen = current_edge.second;
+			}
+
+			Vc.insert(chosen); // add edge vertex with the highest degree to vertex cover
+		}
+	}
+
+	if (verify_vertex_cover(g, Vc)) {
+		return Vc; // the end
+	} else {
+		printf("Algorithm finished but Vc didn't pass vertex cover verification :O\n");
+		return INT_SET{-1};
+	}
+}
+
+/*
+random multistart variation that tests diferent alphas and returns better result
+*/
+INT_SET random_multistart_simple_greedy(Graph &g, int iterations, bool debug_mode) {
+	if (iterations < 2) error("Number of iterations should be at least 2.");
+
+	INT_SET result, best_result;
+	int best_result_size = INT_MAX, result_size = 0;
+
+	for (int i = 0; i < iterations; i++) {
+		result = simple_greedy(g, i+1); // pass iterator++ as seed for the random number generator
 		result_size = result.size();
 		// results.push_back(result);
 

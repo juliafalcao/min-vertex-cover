@@ -132,7 +132,7 @@ void Graph::sort_adj_by_most_neighbors(void) {
 	sort(this->adj.begin(), this->adj.end(), most_values_comparator);
 }
 
-ADJ_PAIR_LIST Graph::get_adj_copy() { // TODO: move to utils.cpp
+ADJ_PAIR_LIST Graph::get_adj_copy(void) { // TODO: move to utils.cpp
 	int v;
 	INT_LIST v_adj = {};
 	INT_LIST_PAIR v_adj_pair;
@@ -153,6 +153,22 @@ ADJ_PAIR_LIST Graph::get_adj_copy() { // TODO: move to utils.cpp
 	return copy;
 }
 
+INT_PAIR_LIST Graph::get_edges_copy(void) {
+	int a, b;
+	INT_PAIR_LIST copy;
+
+	for (auto it = this->edges.begin(); it != this->edges.end(); it++) {
+		a = it->first;
+		b = it->second;
+		INT_PAIR edge = make_pair(a, b);
+		copy.push_back(edge);
+	}
+
+	return copy;
+}
+
+
+
 int Graph::get_n(void) {
 	return this->n;
 }
@@ -163,4 +179,19 @@ int Graph::get_m(void) {
 
 string Graph::get_name(void) {
 	return this->name;
+}
+
+INT_LIST Graph::get_vertex_adj(int vertex) {
+	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
+		if (it->first == vertex) {
+			return it->second;
+		}
+	}
+
+	return {-1};
+}
+
+int Graph::degree(int vertex) {
+	INT_LIST v_adj = get_vertex_adj(vertex);
+	return v_adj.size(); // the size of this vertex's adjacency list
 }

@@ -48,6 +48,14 @@ int main(void) {
 
 	/* load actual instances and start heuristics */
 	INSTANCE_LIST instances;
+	ofstream outfile;
+	outfile.open("results/rm-greedy.csv", std::ofstream::out | std::ofstream::app);
+
+	if (!outfile.is_open()) {
+		error("Error opening file to print results.\n");
+	}
+
+	outfile << "instance,N,M,construction,runtime,rm-greedy-100\n"; // csv header
 
 	for (auto it = filenames.begin(); it != filenames.end(); it++) {
 		TIMESTAMP t0 = time();
@@ -62,8 +70,8 @@ int main(void) {
 
 		/* run heuristic */
 		t0 = time();
-		// inst.mvc = most_neighbors_first(inst.graph, 5, 1, false); // most neighbors first
-		inst.mvc = random_multistart_most_neighbors_first(inst.graph, 5, 5, false); // random multistart
+		// inst.mvc = simple_greedy(inst.graph); // simple greedy, no randomization
+		inst.mvc = random_multistart_simple_greedy(inst.graph, 100); // random multistart, shuffles array
 		long dt = elapsed_time(t0);
 
 		auto first = inst.mvc.begin();
@@ -71,14 +79,18 @@ int main(void) {
 			inst.mvc_size = inst.mvc.size();
 			inst.runtime = dt;
 
-			printf("%s\t%d\t%d\t%ld\t%d\t%ld\n", inst.name.c_str(), inst.graph.get_n(), inst.graph.get_m(), inst.construction_time, inst.runtime, inst.mvc_size);
+			// printf("%s\t%d\t%d\t%ld\t%d\t%ld\n", inst.name.c_str(), inst.graph.get_n(), inst.graph.get_m(), inst.construction_time, inst.runtime, inst.mvc_size);
+			
+			outfile << inst.name << "," << inst.graph.get_n() << "," << inst.graph.get_m() << "," << inst.construction_time << "," << inst.runtime << "," << inst.mvc_size << "\n";
+
 		}
 
 		else {
 			cout << inst.name << " - MNF returned error :(" << endl;
 		}
-
 	}
+
+	if (outfile.is_open()) outfile.close();
 
 	return 0;
 }
