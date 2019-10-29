@@ -100,3 +100,18 @@ void print_adj(ADJ_PAIR_LIST adj) {
 	}
 }
 
+void print_int_set(INT_SET V) {
+	printf("{ ");
+	for (auto it = V.begin(); it != V.end(); it++) printf("%d ", *it);
+	printf("}\n");
+}
+
+bool equal_pairs(INT_PAIR p1, INT_PAIR p2) {
+	return (p1.first == p2.first && p1.second == p2.second) || (p1.first == p2.second && p1.second == p2.first);
+}
+
+void print_int_pair_list(INT_PAIR_LIST V) {
+	printf("{ ");
+	for (auto it = V.begin(); it != V.end(); it++) printf("(%d, %d) ", it->first, it->second);
+	printf("}\n");
+}

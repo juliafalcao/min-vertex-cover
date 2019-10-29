@@ -76,13 +76,13 @@ INT_SET most_neighbors_first(Graph &g, int alpha, int seed, bool debug_mode) {
 
 				} else {
 					if (debug_mode) printf("Algorithm finished but Vc didn't pass vertex cover verification :(\n");
-					return INT_SET{-1};
+					return INT_SET_NULL;
 				}
 			}
 			
 			else if (covered_edges > total_edges) { // done fucked up
 				if (debug_mode) printf("Covered edges count surpassed total edges :O\n");
-				return INT_SET{-1};
+				return INT_SET_NULL;
 			}
 
 			else { // prepare for next iteration
@@ -187,7 +187,7 @@ INT_SET simple_greedy(Graph &g, int seed, bool debug_mode) {
 		return Vc; // the end
 	} else {
 		printf("Algorithm finished but Vc didn't pass vertex cover verification :O\n");
-		return INT_SET{-1};
+		return INT_SET_NULL;
 	}
 }
 
@@ -216,4 +216,182 @@ INT_SET random_multistart_simple_greedy(Graph &g, int iterations, bool debug_mod
 	if (debug_mode) printf("%s - Best result: %d\n", g.get_name().c_str(), best_result_size);
 
 	return best_result;
+}
+
+
+int count_occurrences(INT_LIST A, int x) {
+	int count = 0;
+
+	for (auto it = A.begin(); it != A.end(); it++) {
+		if (*it == x) count++;
+	}
+
+	return count;
+}
+
+/*
+edges that will become uncovered by the removal of v
+OBS.: fails because maybe loss(v1) is empty and loss(v2) is empty, but (v1,v2) is an edge and would be uncovered by the removal of both v1 and v2
+*/
+/*
+INT_PAIR_LIST loss(Graph &g, INT_SET Vc, int v) {
+	int a = -1, b = -1;
+	INT_PAIR_LIST loss = {};
+
+	for (auto it = g.edges.begin(); it != g.edges.end(); it++) {
+		a = it->first;
+		b = it->second;
+
+		if (a == v) {
+			if (find(Vc.begin(), Vc.end(), b) == Vc.end()) {
+				// if a will be removed and b is not in Vc: edge will become uncovered
+				loss.push_back(make_pair(a, b));
+			}
+		} else if (b == v) {
+			if (find(Vc.begin(), Vc.end(), a) == Vc.end()) {
+				// if b will be removed and a is not in Vc: edge will become uncovered
+				loss.push_back(make_pair(a, b));
+			}
+
+		}
+	}
+
+	return loss;
+}
+*/
+
+/*
+edges that will become uncovered by the removal of all the vertices in V from Vc
+*/
+INT_PAIR_LIST loss(Graph &g, INT_SET Vc, INT_SET V) {
+	int a = -1, b = -1;
+	INT_PAIR_LIST loss = {};
+	bool removing_a = false, removing_b = false;
+
+	for (auto it = g.edges.begin(); it != g.edges.end(); it++) {
+		a = it->first;
+		b = it->second;
+		removing_a = find(V.begin(), V.end(), a) != V.end();
+		removing_b = find(V.begin(), V.end(), b) != V.end();
+
+		if ((removing_a && removing_b) || // a and b are to be removed: (a,b) would be uncovered
+		(removing_a && find(Vc.begin(), Vc.end(), b) == Vc.end()) || // a to be removed, b not in cover: (a,b) would be uncovered
+		(removing_b && find(Vc.begin(), Vc.end(), a) == Vc.end()) // b to be removed, a not in cover: (a,b) would be uncovered
+		) {
+			loss.push_back(make_pair(a, b));
+		}
+	}
+
+	return loss;
+}
+
+
+/*
+returns first solution that improves the given solution, or -1 if it reaches max_it iterations
+*/
+INT_SET first_improving(Graph &g, INT_SET solution, int max_it, int seed, bool debug_mode) {
+	srand(seed);
+
+	for (int i = 0; i < max_it; i++) {
+		int v1 = rand() % solution.size();
+		int v2 = rand() % solution.size();
+		if (v2 == v1) {
+			v2 = rand() % solution.size();
+		}
+
+		if (debug_mode) printf("Selected vertices to remove: %d and %d\n", v1, v2);
+
+		int a = -1, b = -1;
+
+		INT_PAIR_LIST uncovered = loss(g, solution, {v1, v2});
+
+		if (debug_mode) {
+			printf("Uncovered edges: ");
+			print_int_pair_list(uncovered);
+		}
+
+		int loss = uncovered.size();
+		if (debug_mode) printf("Total loss: %d\n", loss);
+
+		int common = -1; // vertex (most likely non existent) that covers all of the edges uncovered by the loss of v1 and v2
+		INT_LIST flattened = {};
+
+		for (auto it = uncovered.begin(); it != uncovered.end(); it++) {
+			flattened.push_back(it->first);
+			flattened.push_back(it->second);
+		}
+
+		for (auto it = flattened.begin(); it != flattened.end(); it++) {
+			if (*it == v1 || *it == v2) continue; // common vertex can't be the 2 removed
+			if (count_occurrences(flattened, *it) == loss) {
+				// found a vertex that covers all lost edges!
+				common = *it;
+				break;
+			}
+		}
+
+		if (debug_mode) {
+			printf("Flattened: ");
+			for (auto it = flattened.begin(); it != flattened.end(); it++) {
+				printf("%d ", *it);
+			}
+			printf("\n");
+		}
+
+		if (common != -1) {
+			// remove v1 and v2 and insert common vertex
+			solution.erase(v1);
+			solution.erase(v2);
+			solution.insert(common);
+
+			if (debug_mode) printf("Found common vertex: %d\n", common);
+
+			// verify vertex cover at each turn
+			if (verify_vertex_cover(g, solution)) {
+				return solution;
+			} else {
+				printf("Solution found didn't pass vertex cover validation. :(\n");
+				return INT_SET_NULL;
+			}
+		} else {
+			if (debug_mode) printf("Iteration %d couldn't find common vertex.\n", i);
+		}
+	}
+
+	if (debug_mode) printf("Couldn't find common vertex after %d iterations. Returning INT_SET_NULL.\n", max_it);
+	return INT_SET_NULL; // reached max_it and couldn't find improving solution
+}
+
+
+/*
+local search algorithm
+*/
+INT_SET local_search(Graph &g, int max_it_first_improving, int &search_iterations, bool debug_mode) {
+	if (debug_mode) printf("%s - Starting local search\n", g.get_name().c_str());
+
+	INT_SET current_solution = simple_greedy(g); // build initial solution
+	if (debug_mode) printf("Size of initial solution: %d\n", current_solution.size());
+
+	INT_SET first_improving_solution;
+	int it = 0;
+
+	while (true) { // ouch
+		first_improving_solution = first_improving(g, current_solution, max_it_first_improving, it, debug_mode); // passes iterator as seed to guarantee each first_improving call will select different vertices
+
+		// stop when no longer able to improve solution
+		if (first_improving_solution == INT_SET_NULL) {
+			if (debug_mode) printf("[Search iteration %d] Couldn't find improving solution after %d iterations. Finishing local search.\nFinal solution: %d vertices.\n", it, max_it_first_improving, current_solution.size());
+
+			if (!verify_vertex_cover(g, current_solution)) {
+				printf("YIKES! Final solution doesn't pass vertex cover verification. D:\n");
+				return INT_SET_NULL;
+			}
+
+			search_iterations = it;
+			return current_solution;
+		}
+
+		current_solution = first_improving_solution;
+		it++;
+	}
 }

@@ -49,13 +49,13 @@ int main(void) {
 	/* load actual instances and start heuristics */
 	INSTANCE_LIST instances;
 	ofstream outfile;
-	outfile.open("results/rm-greedy.csv", std::ofstream::out | std::ofstream::app);
+	outfile.open("results/ls-1st.csv", std::ofstream::out | std::ofstream::app);
 
 	if (!outfile.is_open()) {
 		error("Error opening file to print results.\n");
 	}
 
-	outfile << "instance,N,M,construction,runtime,rm-greedy-100\n"; // csv header
+	outfile << "instance,N,M,runtime,search-iterations,mvc\n"; // csv header
 
 	for (auto it = filenames.begin(); it != filenames.end(); it++) {
 		TIMESTAMP t0 = time();
@@ -66,27 +66,31 @@ int main(void) {
 		inst.construction_time = elapsed_time(t0);		
 		inst.name = inst.graph.get_name();
 
-		// printf("Instance '%s' ready: %d nodes, %d edges, built in %lms\n", inst.name, inst.graph.get_n(), inst.graph.get_m(), inst.construction_time);
+		// if (inst.name != "brock200_1") continue; // DEBUG
 
-		/* run heuristic */
+		/* run method and store result */
 		t0 = time();
-		// inst.mvc = simple_greedy(inst.graph); // simple greedy, no randomization
-		inst.mvc = random_multistart_simple_greedy(inst.graph, 100); // random multistart, shuffles array
+		// inst.mvc = simple_greedy(inst.graph); // simple greedy
+		// inst.mvc = random_multistart_simple_greedy(inst.graph, 10, true); // random multistart
+		
+		int max_it = 300, search_iterations = 0;
+		inst.mvc = local_search(inst.graph, max_it, search_iterations);
+
 		long dt = elapsed_time(t0);
 
-		auto first = inst.mvc.begin();
-		if (*first != -1) { // it worked!
+		if (inst.mvc != INT_SET_NULL) { // it worked!
 			inst.mvc_size = inst.mvc.size();
 			inst.runtime = dt;
-
-			// printf("%s\t%d\t%d\t%ld\t%d\t%ld\n", inst.name.c_str(), inst.graph.get_n(), inst.graph.get_m(), inst.construction_time, inst.runtime, inst.mvc_size);
 			
-			outfile << inst.name << "," << inst.graph.get_n() << "," << inst.graph.get_m() << "," << inst.construction_time << "," << inst.runtime << "," << inst.mvc_size << "\n";
+			outfile << inst.name << "," << inst.graph.get_n() << "," << inst.graph.get_m() << "," << inst.runtime << "," << search_iterations << "," << inst.mvc_size << "\n";
 
+			// outfile.close(); // DEBUG
+			// exit(1); // DEBUG
 		}
 
 		else {
-			cout << inst.name << " - MNF returned error :(" << endl;
+			outfile.close();
+			error("Method returned error - " + inst.name + " possibly didn't pass vertex cover verification D:");
 		}
 	}
 

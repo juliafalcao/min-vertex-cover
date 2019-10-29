@@ -1,17 +1,13 @@
-
 all: main
 
-main: main.o utils.o graph.o heuristics.o
-	g++ -g main.cpp -o main.o utils.o graph.o heuristics.o
+main: main.cpp utils graph heuristics
+	g++ -g main.cpp -o main utils graph heuristics
 
-utils: utils.o
-	g++ -g -c utils.cpp -o utils.o
+utils: utils.cpp
+	g++ -g -c utils.cpp -o utils
 
-graph: graph.o
-	g++ -g -c graph.cpp -o graph.o
+graph: graph.cpp
+	g++ -g -c graph.cpp -o graph
 
-heuristics: heuristics.o
-	g++ -g -c heuristics.cpp -o heuristics.o
-
-clean:
-	rm *.o
+heuristics: heuristics.cpp
+	g++ -g -c heuristics.cpp -o heuristics

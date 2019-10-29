@@ -1,4 +1,12 @@
+# to ignore files without extension
+*
+!*/
+!*.*
+
 .vscode/
 test_data/
+results/base_backup.csv
 dirent.h
 *.o
+*.exe
+

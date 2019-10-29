@@ -17,6 +17,7 @@ using namespace std::chrono;
 
 /* constants */
 #define TIMESTAMP time_point<system_clock>
+#define INT_SET_NULL INT_SET{-1} // to be used when errors happen in functions that return INT_SET
 
 /* custom types */
 typedef vector<int> INT_LIST;
@@ -36,6 +37,8 @@ long elapsed_time(time_point<system_clock> since);
 bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b);
 INT_LIST subtract(INT_LIST A, INT_LIST B);
 void print_adj(ADJ_PAIR_LIST adj);
-
+void print_int_set(INT_SET V);
+bool equal_pairs(INT_PAIR p1, INT_PAIR p2);
+void print_int_pair_list(INT_PAIR_LIST V);
 
 #endif
