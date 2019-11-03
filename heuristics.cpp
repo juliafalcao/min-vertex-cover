@@ -15,133 +15,6 @@ bool verify_vertex_cover(Graph &g, INT_SET cover) {
 	return true;
 }
 
-/*
-INT_SET most_neighbors_first(Graph &g, int alpha, int seed, bool debug_mode) {
-	if (alpha < 2) error("Alpha value has to be at least 2 (vertices).");
-
-	ADJ_PAIR_LIST adjc = g.get_adj_copy(); // to manipulate without altering g
-
-	sort(adjc.begin(), adjc.end(), most_values_comparator); // sort by adj lists with most values first
-
-	int total_edges = g.get_m();
-	int covered_edges = 0;
-	int newly_covered_edges = 0;
-	int new_edges = 0;
-	int remaining_vertices = 0;
-
-	int v_index = 0;
-	srand(seed);
-
-	INT_SET Vc; // vertex cover!
-	int v; // current vertex
-	INT_LIST v_adj; // current vertex's adjacencies list
-	INT_LIST s_v_adj; // subsequent vertices' adjacencies lists
-
-	while (adjc.size() > 0) { // main loop
-
-		if (adjc.size() > alpha) {
-			// choose random vertex amongst the <alpha> first in adjc
-			v_index = rand() % alpha;
-			if (debug_mode) printf("Random (alpha=%d) chose %d-th vertex.\n", alpha, v_index);
-		} else {
-			v_index = 0;
-			if (debug_mode) printf("List smaller than %d elements; using first.\n", alpha);
-		}
-
-		v = adjc[v_index].first; // chosen vertex
-		v_adj = adjc[v_index].second; // chosen vertex's adjacencies list
-		if (debug_mode) printf("Current vertex: %d\n", v);
-
-		// remove chosen vertex and its list from adjc
-		adjc.erase(adjc.begin() + v_index);
-
-		// iterate through v's adjacencies to see if it covers any new edges
-		for (auto a_it = v_adj.begin(); a_it != v_adj.end(); a_it++) {
-			int x = *a_it;
-			if (find(Vc.begin(), Vc.end(), x) == Vc.end())
-				newly_covered_edges++; // count (v, x) in as new edge if vertex x is not in Vc
-		}
-
-		if (newly_covered_edges) { // if v covers any new edges
-			Vc.insert(v);
-			if (debug_mode) printf("Added %d to vertex cover.\n", v);
-			covered_edges += newly_covered_edges;
-
-			if (covered_edges == total_edges) { // stop condition
-				if (verify_vertex_cover(g, Vc)) {
-					// finished & verified
-					if (debug_mode) printf("Finished! Vertex cover size: %d\n", Vc.size());
-					
-					break;
-
-				} else {
-					if (debug_mode) printf("Algorithm finished but Vc didn't pass vertex cover verification :(\n");
-					return INT_SET_NULL;
-				}
-			}
-			
-			else if (covered_edges > total_edges) { // done fucked up
-				if (debug_mode) printf("Covered edges count surpassed total edges :O\n");
-				return INT_SET_NULL;
-			}
-
-			else { // prepare for next iteration
-				newly_covered_edges = 0;
-				remaining_vertices = 0;
-
-				for (int j = 0; j < adjc.size(); j++) {
-					// iterate through all the remaining vertices and remove v from their adjacencies
-					s_v_adj = adjc[j].second;
-					INT_LIST::iterator pos = find(s_v_adj.begin(), s_v_adj.end(), v);
-					if (pos != s_v_adj.end()) s_v_adj.erase(pos);
-
-					adjc[j].second = s_v_adj; // necessary?
-					remaining_vertices++;
-				}
-
-				sort(adjc.begin(), adjc.end(), most_values_comparator);
-				// reorder the rest of adjc so that the modified adj lists are still sorted by largest to smallest
-				if (debug_mode) printf("Adjacencies list reordered.\n");
-
-			}
-		}
-
-		// else if v wouldn't cover any new edges: onto the next one
-		if (debug_mode) printf("Vertex %d doesn't cover any new edges; continuing.\n", v);
-	}
-
-	return Vc;
-}
-*/
-
-/*
-INT_SET random_multistart_most_neighbors_first(Graph &g, int iterations, int alpha, bool debug_mode) {
-
-	if (iterations < 2) error("Number of iterations should be at least 2.");
-
-	// vector<INT_SET> results;
-	INT_SET result, best_result;
-	int best_result_size = INT_MAX, result_size = 0;
-
-	for (int i = 0; i < iterations; i++) {
-		result = most_neighbors_first(g, alpha, i, false); // pass iterator as seed for the random number generator
-		result_size = result.size();
-		// results.push_back(result);
-
-		if (debug_mode) printf("Iteration %d: found vertex cover of size %d.\n", i, result_size);
-
-		if (result_size < best_result_size) {
-			best_result = result;
-			best_result_size = result_size; // save obtained MVC as the best one yet
-		}
-	}
-
-	if (debug_mode) printf("%s - Best result: %d\n", g.get_name().c_str(), best_result_size);
-
-	return best_result;
-}
-*/
-
 // aux
 int rng(int i) {
 	return rand() % i;
@@ -151,8 +24,7 @@ int rng(int i) {
 simple greedy constructive heuristic
 iterates through all edges and, if the edge is uncovered, adds its vertex with the highest degree to vertex cover
 */
-
-INT_SET simple_greedy(Graph &g, int seed, bool debug_mode) {
+INT_SET greedy(Graph &g, int seed, bool debug_mode) {
 	INT_SET Vc;
 	INT_PAIR current_edge;
 	int degree_a = 0, degree_b = 0, chosen = -1, a = -1, b = -1;
@@ -192,18 +64,17 @@ INT_SET simple_greedy(Graph &g, int seed, bool debug_mode) {
 }
 
 /*
-random multistart variation that tests diferent alphas and returns better result
+random multistart variation that runs simple greedy multiple times and returns the best solution found
 */
-INT_SET random_multistart_simple_greedy(Graph &g, int iterations, bool debug_mode) {
+INT_SET rm_greedy(Graph &g, int iterations, bool debug_mode) {
 	if (iterations < 2) error("Number of iterations should be at least 2.");
 
 	INT_SET result, best_result;
 	int best_result_size = INT_MAX, result_size = 0;
 
 	for (int i = 0; i < iterations; i++) {
-		result = simple_greedy(g, i+1); // pass iterator++ as seed for the random number generator
+		result = greedy(g, i+1); // pass iterator++ as seed for the random number generator
 		result_size = result.size();
-		// results.push_back(result);
 
 		if (debug_mode) printf("Iteration %d: found vertex cover of size %d.\n", i, result_size);
 
@@ -218,47 +89,25 @@ INT_SET random_multistart_simple_greedy(Graph &g, int iterations, bool debug_mod
 	return best_result;
 }
 
+/*
+multistart alternative function that returns all solutions found
+*/
+vector<INT_SET> rm_greedy_all(Graph &g, int iterations, bool debug_mode) {
+	if (iterations < 2) error("Number of iterations should be at least 2.");
+	
+	INT_SET result;
+	vector<INT_SET> results = {};
 
-int count_occurrences(INT_LIST A, int x) {
-	int count = 0;
+	for (int i = 0; i < iterations; i++) {
+		result = greedy(g, /*i+1*/ time(NULL)); // pass iterator++ as seed for the random number generator
+		results.push_back(result);
 
-	for (auto it = A.begin(); it != A.end(); it++) {
-		if (*it == x) count++;
+		if (debug_mode) printf("Iteration %d: found vertex cover of size %d.\n", i, result.size());
 	}
 
-	return count;
+
+	return results;
 }
-
-/*
-edges that will become uncovered by the removal of v
-OBS.: fails because maybe loss(v1) is empty and loss(v2) is empty, but (v1,v2) is an edge and would be uncovered by the removal of both v1 and v2
-*/
-/*
-INT_PAIR_LIST loss(Graph &g, INT_SET Vc, int v) {
-	int a = -1, b = -1;
-	INT_PAIR_LIST loss = {};
-
-	for (auto it = g.edges.begin(); it != g.edges.end(); it++) {
-		a = it->first;
-		b = it->second;
-
-		if (a == v) {
-			if (find(Vc.begin(), Vc.end(), b) == Vc.end()) {
-				// if a will be removed and b is not in Vc: edge will become uncovered
-				loss.push_back(make_pair(a, b));
-			}
-		} else if (b == v) {
-			if (find(Vc.begin(), Vc.end(), a) == Vc.end()) {
-				// if b will be removed and a is not in Vc: edge will become uncovered
-				loss.push_back(make_pair(a, b));
-			}
-
-		}
-	}
-
-	return loss;
-}
-*/
 
 /*
 edges that will become uncovered by the removal of all the vertices in V from Vc
@@ -285,7 +134,6 @@ INT_PAIR_LIST loss(Graph &g, INT_SET Vc, INT_SET V) {
 	return loss;
 }
 
-
 /*
 returns first solution that improves the given solution, or -1 if it reaches max_it iterations
 */
@@ -300,8 +148,6 @@ INT_SET first_improving(Graph &g, INT_SET solution, int max_it, int seed, bool d
 		}
 
 		if (debug_mode) printf("Selected vertices to remove: %d and %d\n", v1, v2);
-
-		int a = -1, b = -1;
 
 		INT_PAIR_LIST uncovered = loss(g, solution, {v1, v2});
 
@@ -365,22 +211,30 @@ INT_SET first_improving(Graph &g, INT_SET solution, int max_it, int seed, bool d
 
 /*
 local search algorithm
+g: graph
+type: "first" for first-improving, "best" for best-improving
+max_it: max search iterations
+max_it_1st: max iterations of first-improving heuristic at each search iteration
+&search_iterations: variable to store the number of actual search iterations run
+initial_solution: optional initial solution for the search
+debug_mode: whether to print debug messages
 */
-INT_SET local_search(Graph &g, int max_it_first_improving, int &search_iterations, bool debug_mode) {
+INT_SET local_search(Graph &g, string type, int max_it, int max_it_1st, int &search_iterations, INT_SET initial_solution, bool debug_mode) {
 	if (debug_mode) printf("%s - Starting local search\n", g.get_name().c_str());
 
-	INT_SET current_solution = simple_greedy(g); // build initial solution
+	INT_SET current_solution = (initial_solution == INT_SET_NULL) ? greedy(g) /* build initial solution */ : initial_solution;
+
 	if (debug_mode) printf("Size of initial solution: %d\n", current_solution.size());
 
 	INT_SET first_improving_solution;
 	int it = 0;
 
-	while (true) { // ouch
-		first_improving_solution = first_improving(g, current_solution, max_it_first_improving, it, debug_mode); // passes iterator as seed to guarantee each first_improving call will select different vertices
+	while (it < max_it) {
+		first_improving_solution = first_improving(g, current_solution, max_it_1st, time(NULL), debug_mode); // passes iterator as seed to guarantee each first_improving call will select different vertices
 
 		// stop when no longer able to improve solution
 		if (first_improving_solution == INT_SET_NULL) {
-			if (debug_mode) printf("[Search iteration %d] Couldn't find improving solution after %d iterations. Finishing local search.\nFinal solution: %d vertices.\n", it, max_it_first_improving, current_solution.size());
+			if (debug_mode) printf("[Search iteration %d] Couldn't find improving solution after %d iterations. Finishing local search.\nFinal solution: %d vertices.\n", it, max_it_1st, current_solution.size());
 
 			if (!verify_vertex_cover(g, current_solution)) {
 				printf("YIKES! Final solution doesn't pass vertex cover verification. D:\n");
@@ -394,4 +248,228 @@ INT_SET local_search(Graph &g, int max_it_first_improving, int &search_iteration
 		current_solution = first_improving_solution;
 		it++;
 	}
+
+	search_iterations = it;
+	return current_solution;
+}
+
+/*
+random multistart version of local search, using the solutions from rm-greedy and applying local search to them, finally returning only the best result found
+*/
+INT_SET rm_local_search(Graph &g, string type, int it_rm, int max_it, int max_it_1st, int &improvement, bool debug_mode) {
+	vector<INT_SET> initial_solutions = rm_greedy_all(g, it_rm, debug_mode); // get all rm-greedy solutions
+
+	INT_SET solution = {}, best_ls_solution = {};
+	int best_ls_solution_size = INT_MAX;
+	int search_iterations = 0 /*trash*/, solution_size = 0, initial_size = 0, it_count = 0;
+
+	for (auto it = initial_solutions.begin(); it != initial_solutions.end(); it++) {
+		if (debug_mode) printf("Applying local search to initial solution %d of size %d.\n", it_count, it->size());
+
+		solution = local_search(g, "first", max_it, max_it_1st, search_iterations, *it); // run local search using rm solution as initial
+		solution_size = solution.size();
+
+		if (solution_size <= best_ls_solution_size) {
+			best_ls_solution = solution;
+			best_ls_solution_size = solution_size;
+			initial_size = it->size(); // store size of initial_solution used for this best ls solution
+		}
+
+		it_count++;
+	}
+
+	if (initial_size == best_ls_solution_size) {
+		if (debug_mode) printf("LS didn't improve the solution used at all :(\n");
+		improvement = 0;
+	}
+
+	else {
+		improvement = initial_size - best_ls_solution_size;
+	}
+
+	return best_ls_solution;
+}
+
+/*
+semi-greedy
+uses restricted candidate list
+[!] MAY RETURN INCOMPLETE VERTEX COVER (NOT A VALID SOLUTION)
+*/
+INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug_mode) {
+	INT_SET Vc;
+	INT_PAIR current_edge;
+	int a = -1, b = -1;
+
+	/* get vertex list and sort it by highest degree first */
+	INT_LIST vertices = g.get_vertex_list();
+	vertices = g.sort_vertices_by_higher_degree(vertices);
+	int min_degree = g.min_degree(), max_degree = g.max_degree();
+
+	if (g.degree(vertices[0]) != max_degree || g.degree(vertices[vertices.size()-1]) != min_degree) {
+		printf("Max degree: %d, min degree: %d\n", max_degree, min_degree); // debug
+		printf("First: %d, degree = %d; last = %d, degree = %d\n", vertices[0], g.degree(vertices[0]), vertices[vertices.size()-1], g.degree(vertices[vertices.size()-1])); // debug
+		error("Vertices list wasn't sorted properly.");
+	}
+
+	/* build restricted candidate list (RCL) */
+	INT_LIST RCL = {};
+
+	if (alpha == 0.0) { // add all vertices with the highest degree value to RCL
+		for (auto it = vertices.begin(); it != vertices.end(); it++) {
+			if (g.degree(*it) < max_degree) break;
+			RCL.push_back(*it);
+		}
+	} else if (alpha == 1.0) { // add all vertices to RCL
+		RCL = vertices;
+	} else if (alpha > 0.0 && alpha < 1.0) { // add all vertices inside accepted range (according to alpha) to RCL
+		int min_accepted_degree = min_degree + (int) floor(alpha*(max_degree-min_degree));
+		if (debug_mode) printf("Max degree: %d, min degree: %d, minimum accepted degree: %d\n", max_degree, min_degree, min_accepted_degree);
+
+		for (auto it = vertices.begin(); it != vertices.end(); it++) {
+			if (g.degree(*it) < min_accepted_degree) break;
+
+			RCL.push_back(*it);
+		}
+	} else {
+		error("Invalid alpha. (0 <= alpha <= 1)");
+	}
+
+	if (debug_mode) printf("RCL size: %d vertices.\n", RCL.size());
+
+	/* shuffle edges list if desired */
+	INT_PAIR_LIST edges = g.get_edges_copy();
+
+	if (seed) { // shuffles array if seed is not 0
+		srand(seed);
+		random_shuffle(edges.begin(), edges.end(), rng);
+		if (debug_mode) printf("Shuffled edges successfully! First edge is: (%d, %d)\n", edges[0].first, edges[0].second);
+	}
+
+	/*
+	construct solution by iterating through edges list and adding vertices that are in RCL to the vertex cover
+	*/
+	int skipped_edges = 0;
+	bool skipped = true;
+	for (auto it = edges.begin(); it != edges.end(); it++) { // main iterator through edges
+		current_edge = *it;
+		a = current_edge.first;
+		b = current_edge.second;
+
+		if ((find(Vc.begin(), Vc.end(), a) == Vc.end()) && (find(Vc.begin(), Vc.end(), b) == Vc.end())) {
+		// neither a nor b is in vertex cover: edge is yet uncovered
+
+			// iterate through RCL, add whichever vertex comes first, then stop
+			for (auto it = RCL.begin(); it != RCL.end(); it++) {
+				if (*it == a) {
+					Vc.insert(a);
+					skipped = false;
+					break;
+				} else if (*it == b) {
+					Vc.insert(b);
+					skipped = false;
+					break;
+				}	
+			}
+		}
+
+		if (skipped) {
+			/*
+			if neither a nor b is in RCL:
+			won't add any vertex to Vc, and maybe the solution will be invalid
+			*/
+			skipped_edges++;
+		}
+
+		skipped = true;
+	}
+
+	if (debug_mode) printf("Semi-greedy skipped %d out of %d edges; solution is most likely invalid.\n", skipped_edges, g.get_m());
+	return Vc;
+}
+
+/*
+repair incomplete vertex cover by iterating through edges and, for uncovered edges, adding the vertex of highest degree to the solution
+*/
+INT_SET repair(Graph &g, INT_SET incomplete_Vc) {
+	INT_SET Vc = incomplete_Vc;
+	INT_PAIR current_edge;
+	int a = 0, b = 0;
+
+	for (auto it = g.edges.begin(); it != g.edges.end(); it++) {
+		current_edge = *it;
+		a = current_edge.first;
+		b = current_edge.second;
+
+		if ((find(Vc.begin(), Vc.end(), a) == Vc.end()) && (find(Vc.begin(), Vc.end(), b) == Vc.end())) {
+			// edge is uncovered
+
+			if (g.degree(a) > g.degree(b)) { // add vertex with the highest degree to incomplete Vc
+				Vc.insert(a);
+			} else {
+				Vc.insert(b);
+			}
+		}
+	}
+
+	return Vc;
+}
+
+INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool debug_mode) {
+	INT_SET solution = {}, best_solution = {};
+	int solution_size = 0, best_solution_size = INT_MAX;
+	int total_elapsed_time = 0, dt = 0;
+	TIMESTAMP t0 = time();
+	int iterations = 0;
+
+
+	/* main loop of GRASP procedure */
+	while (total_elapsed_time < max_time_ms || iterations < max_iterations) { // stopping conditions
+		/*
+		phase 1: construction
+		*/
+		t0 = time();
+		solution = semi_greedy(g, time(NULL) /*???*/, alpha, debug_mode);
+		dt = elapsed_time(t0);
+
+		if (!verify_vertex_cover(g, solution)) {
+			if (debug_mode) printf("Constructed solution by semi-greedy is incomplete (%d vertices); will repair.\n", solution.size());
+			t0 = time();
+			solution = repair(g, solution);
+			dt += elapsed_time(t0);
+			if (debug_mode) printf("Repaired solution now has %d vertices.\n", solution.size());
+		} else {
+			if (debug_mode) printf("Constructed solution is valid; onto local search now.\n");
+		}
+
+		/*
+		phase 2: local search
+		*/
+		int max_it = 100, max_it_1st = 300, search_iterations = -1;
+		t0 = time();
+		solution = local_search(g, "first", max_it, max_it_1st, search_iterations, solution);
+		dt += elapsed_time(t0);
+		solution_size = solution.size();
+		if (debug_mode) printf("Local search found MVC of size %d in %d search iterations.\n", solution_size, search_iterations);
+		
+		/*
+		conclusion: replace current best solution if the one found is better
+		*/
+		if (solution_size < best_solution_size) {
+			best_solution = solution;
+			best_solution_size = solution_size;
+		}
+
+		total_elapsed_time += dt;
+		iterations++;
+	}
+
+	if (debug_mode) printf("Stopped GRASP at %d elapsed milliseconds & %d iterations.\n", total_elapsed_time, iterations);
+
+	if (verify_vertex_cover(g, solution)) {
+		return best_solution;
+	} else {
+		printf("GRASP returned invalid solution. D:\n");
+		return INT_SET{-1};
+	}
+
 }

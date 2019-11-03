@@ -49,8 +49,7 @@ void Graph::make_graph(string path, string filename, int &n_vertices) {
 	if (!file.is_open()) error("Não foi possível abrir o arquivo '" + filename + "'.");
 
 	int n = 0; // nodes
-	int m = 0; // edges
-	int i = 0, i0 = 0, i1 = 0;
+	int i = 0, i1 = 0;
 	int a = 0, b = 0; // edge vertices
 	string buffer;
 	bool line0 = true;
@@ -194,4 +193,62 @@ INT_LIST Graph::get_vertex_adj(int vertex) {
 int Graph::degree(int vertex) {
 	INT_LIST v_adj = get_vertex_adj(vertex);
 	return v_adj.size(); // the size of this vertex's adjacency list
+}
+
+INT_LIST Graph::get_vertex_list(void) {
+	INT_LIST vertices = {};
+	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
+		vertices.push_back(it->first);
+	}
+
+	return vertices;
+}
+
+/*
+comparer function that returns whether v1 should be placed before v2 or not
+*/
+bool Graph::compare_degree_reverse(int v1, int v2) {
+	int d1 = this->degree(v1);
+	int d2 = this->degree(v2);
+
+	return (d1 > d2); // <: ascending order, >: descending order
+}
+
+INT_LIST Graph::sort_vertices_by_higher_degree(INT_LIST vertices) {
+	sort(vertices.begin(), vertices.end(),
+		[this](int v1, int v2) { return this->compare_degree_reverse(v1, v2); } // c++ lambda!
+	);
+
+	return vertices;
+}
+
+/*
+functions to get the minimum and maximum degree values for the vertices in the graph
+*/
+int Graph::min_degree(void) {
+	int min_degree = INT_MAX, degree = -1;
+
+	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
+		degree = this->degree(it->first); // vertex degree
+
+		if (degree < min_degree) {
+			min_degree = degree;
+		}
+	}
+
+	return min_degree;
+}
+
+int Graph::max_degree(void) {
+	int max_degree = 0, degree = -1;
+
+	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
+		degree = this->degree(it->first);
+
+		if (degree > max_degree) {
+			max_degree = degree;
+		}
+	}
+
+	return max_degree;
 }
