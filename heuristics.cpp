@@ -296,109 +296,83 @@ uses restricted candidate list
 [!] MAY RETURN INCOMPLETE VERTEX COVER (NOT A VALID SOLUTION)
 */
 INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug_mode) {
-	INT_SET Vc;
-	INT_PAIR current_edge;
-	int a = -1, b = -1;
+	if ((alpha < 0.0) || (alpha > 1.0)) {
+		error("Invalid alpha. (0 <= alpha <= 1)");
+	}
+
+	INT_SET Vc = {};
 
 	/* get vertex list and sort it by highest degree first */
 	INT_LIST vertices = g.get_vertex_list();
 	vertices = g.sort_vertices_by_higher_degree(vertices);
 	int min_degree = g.min_degree(), max_degree = g.max_degree();
 
-	if (g.degree(vertices[0]) != max_degree || g.degree(vertices[vertices.size()-1]) != min_degree) {
-		printf("Max degree: %d, min degree: %d\n", max_degree, min_degree); // debug
-		printf("First: %d, degree = %d; last = %d, degree = %d\n", vertices[0], g.degree(vertices[0]), vertices[vertices.size()-1], g.degree(vertices[vertices.size()-1])); // debug
+	if (g.degree(vertices[0]) != max_degree || g.degree(vertices[vertices.size()-1]) != min_degree) { // validate sorting
 		error("Vertices list wasn't sorted properly.");
 	}
 
-	/* build restricted candidate list (RCL) */
 	INT_LIST RCL = {};
+	int min_accepted_degree = -1, v = -1;
+	if (seed) srand(seed); // seed generator once
+	int max_it = g.get_m(), it = 0;
 
-	if (alpha == 0.0) { // add all vertices with the highest degree value to RCL
-		for (auto it = vertices.begin(); it != vertices.end(); it++) {
-			if (g.degree(*it) < max_degree) break;
-			RCL.push_back(*it);
-		}
-	} else if (alpha == 1.0) { // add all vertices to RCL
-		RCL = vertices;
-	} else if (alpha > 0.0 && alpha < 1.0) { // add all vertices inside accepted range (according to alpha) to RCL
-		int min_accepted_degree = min_degree + (int) floor(alpha*(max_degree-min_degree));
-		if (debug_mode) printf("Max degree: %d, min degree: %d, minimum accepted degree: %d\n", max_degree, min_degree, min_accepted_degree);
+	/* main loop */
+	while (it < max_it) {
 
-		for (auto it = vertices.begin(); it != vertices.end(); it++) {
-			if (g.degree(*it) < min_accepted_degree) break;
+		/* build RCL */
+		RCL.clear();
+		
+		if (alpha == 1.0) {
+			for (auto v_it = vertices.begin(); v_it != vertices.end(); v_it++) {
+				if (find(Vc.begin(), Vc.end(), *v_it) != Vc.end()) continue;
+				RCL.push_back(*v_it);
+			}
+		} else {
+			max_degree = g.degree(vertices.front());
+			min_degree = g.degree(vertices.back());
+			min_accepted_degree = min_degree + (int) floor(alpha*(max_degree-min_degree));
 
-			RCL.push_back(*it);
-		}
-	} else {
-		error("Invalid alpha. (0 <= alpha <= 1)");
-	}
-
-	if (debug_mode) printf("RCL size: %d vertices.\n", RCL.size());
-
-	/* shuffle edges list if desired */
-	INT_PAIR_LIST edges = g.get_edges_copy();
-
-	if (seed) { // shuffles array if seed is not 0
-		srand(seed);
-		random_shuffle(edges.begin(), edges.end(), rng);
-		if (debug_mode) printf("Shuffled edges successfully! First edge is: (%d, %d)\n", edges[0].first, edges[0].second);
-	}
-
-	/*
-	construct solution by iterating through edges list and adding vertices that are in RCL to the vertex cover
-	*/
-	int skipped_edges = 0;
-	bool skipped = true;
-	for (auto it = edges.begin(); it != edges.end(); it++) { // main iterator through edges
-		current_edge = *it;
-		a = current_edge.first;
-		b = current_edge.second;
-
-		if ((find(Vc.begin(), Vc.end(), a) == Vc.end()) && (find(Vc.begin(), Vc.end(), b) == Vc.end())) {
-		// neither a nor b is in vertex cover: edge is yet uncovered
-
-			// iterate through RCL, add whichever vertex comes first, then stop
-			for (auto it = RCL.begin(); it != RCL.end(); it++) {
-				if (*it == a) {
-					Vc.insert(a);
-					skipped = false;
-					break;
-				} else if (*it == b) {
-					Vc.insert(b);
-					skipped = false;
-					break;
-				}	
+			for (auto v_it = vertices.begin(); v_it != vertices.end(); v_it++) {
+				if (g.degree(*v_it) < min_accepted_degree) break;
+				// if (find(Vc.begin(), Vc.end(), *v_it) != Vc.end()) continue; // skip vertices already in cover
+				RCL.push_back(*v_it);
 			}
 		}
 
-		if (skipped) {
-			/*
-			if neither a nor b is in RCL:
-			won't add any vertex to Vc, and maybe the solution will be invalid
-			*/
-			skipped_edges++;
-		}
+		if (RCL.size() == 0) break;
 
-		skipped = true;
+		/* select random vertex from RCL and add it to cover */
+		v = RCL[rand() % RCL.size()];
+		Vc.insert(v);
+		vertices.erase(find(vertices.begin(), vertices.end(), v));
+
+		/* if it's a complete cover, stop running */
+		if (verify_vertex_cover(g, Vc)) break;
+
+		it++;
 	}
 
-	if (debug_mode) printf("Semi-greedy skipped %d out of %d edges; solution is most likely invalid.\n", skipped_edges, g.get_m());
 	return Vc;
 }
 
 /*
 repair incomplete vertex cover by iterating through edges and, for uncovered edges, adding the vertex of highest degree to the solution
 */
-INT_SET repair(Graph &g, INT_SET incomplete_Vc) {
+INT_SET repair(Graph &g, INT_SET incomplete_Vc, int seed) {
 	INT_SET Vc = incomplete_Vc;
-	INT_PAIR current_edge;
 	int a = 0, b = 0;
 
+	INT_PAIR_LIST edges = g.get_edges_copy();
+
+	if (seed) {
+		srand(seed);
+		random_shuffle(edges.begin(), edges.end(), rng);
+		/*if (debug_mode)*/ printf("Shuffled edges successfully! First edge is: (%d, %d)\n", edges[0].first, edges[0].second);
+	}
+
 	for (auto it = g.edges.begin(); it != g.edges.end(); it++) {
-		current_edge = *it;
-		a = current_edge.first;
-		b = current_edge.second;
+		a = it->first;
+		b = it->second;
 
 		if ((find(Vc.begin(), Vc.end(), a) == Vc.end()) && (find(Vc.begin(), Vc.end(), b) == Vc.end())) {
 			// edge is uncovered
@@ -421,20 +395,28 @@ INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool d
 	TIMESTAMP t0 = time();
 	int iterations = 0;
 
+	INT_SET previous_solution = {};
 
 	/* main loop of GRASP procedure */
-	while (total_elapsed_time < max_time_ms || iterations < max_iterations) { // stopping conditions
+	while ((iterations < max_iterations) && (total_elapsed_time < max_time_ms)) { // stopping conditions
+		printf("GRASP iteration %d.\n", iterations);
 		/*
 		phase 1: construction
 		*/
 		t0 = time();
-		solution = semi_greedy(g, time(NULL) /*???*/, alpha, debug_mode);
+		solution = semi_greedy(g, iterations+1, alpha, true);
 		dt = elapsed_time(t0);
+
+		if (solution == previous_solution) {
+			if (debug_mode) printf("New semi-greedy 'solution' is the exact same as the previous one.\n");
+		}
+
+		previous_solution = solution;
 
 		if (!verify_vertex_cover(g, solution)) {
 			if (debug_mode) printf("Constructed solution by semi-greedy is incomplete (%d vertices); will repair.\n", solution.size());
 			t0 = time();
-			solution = repair(g, solution);
+			solution = repair(g, solution, iterations+1);
 			dt += elapsed_time(t0);
 			if (debug_mode) printf("Repaired solution now has %d vertices.\n", solution.size());
 		} else {

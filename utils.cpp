@@ -4,7 +4,7 @@
 aux function to handle errors that should print a message and stop the program
 */
 void error(string message) {
-	cerr << message << endl;
+	cout << message << endl;
 	exit(1);
 }
 

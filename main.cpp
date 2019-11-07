@@ -41,11 +41,10 @@ int main(void) {
 	outfile << "instance,alpha,max_time,max_it,runtime,mvc\n"; // csv header
 	outfile.close();
 
-	// for debugging
-	// auto ini = find(filenames.begin(), filenames.end(), "MANN_a9.clq-compliment.txt");
-	/*remove!*/ // filenames = {"c-fat200-1.clq-compliment.txt", "c-fat200-2.clq-compliment.txt", "c-fat200-5.clq-compliment.txt", "c-fat500-1.clq-compliment.txt", "c-fat500-10.clq-compliment.txt", "c-fat500-5.clq-compliment.txt", "p_hat1500-1.clq-compliment.txt"};
 
-	for (auto it = test_filenames.begin(); it != test_filenames.end(); it++) { // only testing
+	for (auto it = test_filenames.begin(); it != test_filenames.end(); it++) { // only test instances
+		if (*it != "p_hat300-2.clq-compliment.txt") continue; // debugging!
+
 		TIMESTAMP t0 = time();
 		INSTANCE inst{ Graph(GRAPHS_PATH, *it) };
 		
@@ -55,21 +54,18 @@ int main(void) {
 		printf("CURRENT INSTANCE: %s\n", inst.name.c_str());
 
 		/* run method and store result */
-		// int max_it = 300, max_it_1st = 300, search_iterations = 0, improvement = 0;
 		float grasp_alpha = 0.5;
-		int max_grasp_time = 5*60*1000; // 5min
-		int max_grasp_iterations = 100;
+		int max_grasp_time = 3*60*1000; // 3min
+		int max_grasp_iterations = 5;
 		t0 = time();
-		// inst.mvc = rm_local_search(inst.graph, "first", 20, max_it, max_it_1st, improvement, true);
 		inst.mvc = grasp(inst.graph, grasp_alpha, max_grasp_time, max_grasp_iterations, true);
-		long dt = elapsed_time(t0); // TODO: recalc
+		long dt = elapsed_time(t0);
 
 		if (inst.mvc != INT_SET_NULL) { // it worked!
 			inst.mvc_size = inst.mvc.size();
 			inst.runtime = dt;
 			
 			outfile.open(outfilename, std::ofstream::out | std::ofstream::app);
-			// outfile << inst.name << "," << inst.graph.get_n() << "," << inst.graph.get_m() << "," << inst.runtime << "," << search_iterations << "," << inst.mvc_size << "\n";
 			
 			// grasp: instance,alpha,max_time,max_it,runtime,mvc
 			outfile << inst.name << "," << grasp_alpha << "," << max_grasp_time << "," << max_grasp_iterations << "," << inst.runtime << "," << inst.mvc_size << "\n";

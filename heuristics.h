@@ -22,7 +22,7 @@ INT_PAIR_LIST loss(Graph &g, INT_SET Vc, INT_SET V);
 INT_SET first_improving(Graph &g, INT_SET solution, int max_it, int seed, bool debug_mode=false);
 INT_SET local_search(Graph &g, string type, int max_it, int max_it_1st, int &search_iterations, INT_SET initial_solution=INT_SET_NULL, bool debug_mode=false);
 INT_SET rm_local_search(Graph &g, string type, int it_rm, int max_it, int max_it_1st, int &improvement, bool debug_mode);
-INT_SET repair(Graph &g, INT_SET incomplete_Vc);
+INT_SET repair(Graph &g, INT_SET incomplete_Vc, int seed);
 INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool debug_mode);
 
 #endif
