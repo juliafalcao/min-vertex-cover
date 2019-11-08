@@ -23,12 +23,14 @@ using namespace std::chrono;
 
 /* custom types */
 typedef vector<int> INT_LIST;
+typedef vector<float> FLOAT_LIST;
 typedef vector<string> STR_LIST;
 typedef pair<int, INT_LIST> INT_LIST_PAIR;
 typedef vector<INT_LIST_PAIR> ADJ_PAIR_LIST;
 typedef pair<int,int> INT_PAIR;
 typedef vector<INT_PAIR> INT_PAIR_LIST;
 typedef set<int> INT_SET;
+typedef vector<set<int>> INT_SET_LIST;
 
 /* helpers */
 void error(string message);
@@ -41,11 +43,17 @@ long elapsed_time(time_point<system_clock> since);
 bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b);
 INT_LIST subtract(INT_LIST A, INT_LIST B);
 int count_occurrences(INT_LIST V, int x);
+INT_SET copy_int_set(INT_SET V);
 
 /* printers */
-void print_adj(ADJ_PAIR_LIST adj);
-void print_int_set(INT_SET V);
-void print_int_pair_list(INT_PAIR_LIST V);
-void print_int_list(INT_LIST V);
+void print(ADJ_PAIR_LIST adj);
+void print(INT_SET V);
+void print(INT_PAIR_LIST V);
+void print(INT_LIST V);
+void print_solutions(set<INT_SET> solutions);
+
+/* vector to string */
+string str(FLOAT_LIST vec);
+string str(INT_LIST vec);
 
 #endif

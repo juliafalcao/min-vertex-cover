@@ -88,7 +88,7 @@ INT_LIST subtract(INT_LIST &A, INT_LIST &B) {
 /*
 print any ADJ_PAIR_LIST
 */
-void print_adj(ADJ_PAIR_LIST adj) {
+void print(ADJ_PAIR_LIST adj) {
 	for (auto it = adj.begin(); it != adj.end(); it++) {
 		cout << it->first << ": { ";
 		
@@ -103,7 +103,7 @@ void print_adj(ADJ_PAIR_LIST adj) {
 /*
 print set of integers as { 1 2 3 }
 */
-void print_int_set(INT_SET V) {
+void print(INT_SET V) {
 	printf("{ ");
 	for (auto it = V.begin(); it != V.end(); it++) printf("%d ", *it);
 	printf("}\n");
@@ -112,7 +112,7 @@ void print_int_set(INT_SET V) {
 /*
 print vector of integers as { 1 2 3 }
 */
-void print_int_list(INT_LIST V) {
+void print(INT_LIST V) {
 	printf("{ ");
 	for (auto it = V.begin(); it != V.end(); it++) printf("%d ", *it);
 	printf("}\n");
@@ -121,7 +121,7 @@ void print_int_list(INT_LIST V) {
 /*
 print list of int pairs as { (1, 2) (3, 4) (5, 6) }
 */
-void print_int_pair_list(INT_PAIR_LIST V) {
+void print(INT_PAIR_LIST V) {
 	printf("{ ");
 	for (auto it = V.begin(); it != V.end(); it++) printf("(%d, %d) ", it->first, it->second);
 	printf("}\n");
@@ -138,4 +138,42 @@ int count_occurrences(INT_LIST V, int x) {
 	}
 
 	return count;
+}
+
+string str(FLOAT_LIST vec) {
+	string str = "";
+
+	for (auto it = vec.begin(); it != vec.end(); it++) {
+		str = str + to_string(*it) + " ";
+	}
+
+	return str;
+}
+
+string str(INT_LIST vec) {
+	string str = "";
+
+	for (auto it = vec.begin(); it != vec.end(); it++) {
+		str = str + to_string(*it) + " ";
+	}
+
+	return str;
+}
+
+INT_SET copy_int_set(INT_SET V) {
+	INT_SET C;
+	for (auto it = V.begin(); it != V.end(); it++) C.insert(*it);
+
+	return C;
+}
+
+void print_solutions(set<INT_SET> solutions) {
+	INT_SET solution;
+	int i = 0;
+
+	for (auto it = solutions.begin(); it != solutions.end(); it++) {
+		solution = *it;
+		printf("Solution #%d: size %d\n", i, solution.size());
+		i++;
+	}
 }

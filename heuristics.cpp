@@ -153,7 +153,7 @@ INT_SET first_improving(Graph &g, INT_SET solution, int max_it, int seed, bool d
 
 		if (debug_mode) {
 			printf("Uncovered edges: ");
-			print_int_pair_list(uncovered);
+			print(uncovered);
 		}
 
 		int loss = uncovered.size();
@@ -453,5 +453,110 @@ INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool d
 		printf("GRASP returned invalid solution. D:\n");
 		return INT_SET{-1};
 	}
+}
 
+/*
+elements that are in A but not in B
+*/
+INT_LIST left(INT_SET A, INT_SET B) {
+	INT_LIST left = {};
+	for (auto it = A.begin(); it != A.end(); it++) {
+		if (find(B.begin(), B.end(), *it) == B.end()) {
+			left.push_back(*it);
+		}
+	}
+
+	return left;
+}
+
+set<INT_SET> restricted_neighborhood(Graph &g, INT_SET initial_solution, INT_SET guiding_solution) {
+
+	set<INT_SET> viable_solutions = {}; // set so that there won't be identical solutions
+	INT_SET possible_solution = {};
+	int v = -1, vr = -1, vi = -1;
+
+	int size_Si = initial_solution.size(), size_Sg = guiding_solution.size();
+	int largest =  size_Si > size_Sg ? size_Si : size_Sg;
+
+	INT_LIST diff_to_remove = left(initial_solution, guiding_solution); // elements in Si that are not in Sg
+	INT_LIST diff_to_include = left(guiding_solution, initial_solution); // elements in Sg that are not in Si
+
+	for (auto r_it = diff_to_remove.begin(); r_it != diff_to_remove.end(); r_it++) {
+		vr = *r_it;
+		possible_solution = copy_int_set(initial_solution);
+		possible_solution.erase(find(possible_solution.begin(), possible_solution.end(), vr));
+
+		if (verify_vertex_cover(g, possible_solution)) {
+			viable_solutions.insert(possible_solution);
+		}
+
+		for (auto i_it = diff_to_include.begin(); i_it != diff_to_include.end(); i_it++) {
+			vi = *i_it;
+
+			possible_solution.insert(vi);
+
+			if (verify_vertex_cover(g, possible_solution)) {
+				viable_solutions.insert(possible_solution);
+			}
+		}
+	}
+
+	return viable_solutions;
+}
+
+/*
+compute the similarity between two possible solutions
+*/
+float similarity(Graph &g, INT_SET A, INT_SET B) {
+	if (A == B) return 1;
+
+	INT_LIST A_minus_B = left(A, B);
+	INT_LIST B_minus_A = left(B, A);
+
+	INT_SET difference = {};
+	
+	for (auto it = A_minus_B.begin(); it != A_minus_B.end(); it++) {
+		difference.insert(*it);
+	}
+
+	for (auto it = B_minus_A.begin(); it != B_minus_A.end(); it++) {
+		difference.insert(*it);
+	}
+
+	float difference_cost = difference.size() / (float) g.get_n();
+	return 1.0 - difference_cost;
+}
+
+INT_SET best_solution(Graph &g, set<INT_SET> solutions, INT_SET closer_to) {
+	/*
+	first criteria: size (minimize)
+	un-tie criteria: similarity (maximize)
+	*/
+	int min_size = INT_MAX, solution_size = 0;
+	float max_similarity = 0.0, solution_similarity = 0.0;
+	INT_SET best_solution = {}, solution = {};
+	bool compare_similarity = closer_to.size() > 0;
+
+	for (auto it = solutions.begin(); it != solutions.end(); it++) {
+		solution = *it;
+		solution_size = solution.size();
+		if (compare_similarity) solution_similarity = similarity(g, solution, closer_to);
+
+		if (solution_size < min_size) {
+			best_solution = solution;
+			min_size = solution_size;
+
+			if (compare_similarity) max_similarity = solution_similarity;
+			
+		} else if (compare_similarity && solution_size == min_size) {
+			if (solution_similarity > max_similarity) {
+
+				best_solution = solution;
+				min_size = solution_size;
+				max_similarity = solution_similarity;
+			}
+		}
+	}
+
+	return best_solution;
 }

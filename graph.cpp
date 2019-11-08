@@ -12,6 +12,11 @@ Graph::Graph(string path, string filename, bool directed) {
 	this->m = this->edges.size();
 }
 
+Graph::Graph(INT_SET test_vertices) {
+	this->n = test_vertices.size();
+	this->m = -1;
+}
+
 /*
 print adjacencies list
 */

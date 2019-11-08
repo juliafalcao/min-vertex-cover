@@ -49,6 +49,8 @@ public:
 	INT_LIST sort_vertices_by_higher_degree(INT_LIST vertices);
 	int min_degree(void);
 	int max_degree(void);
+
+	Graph(INT_SET test_vertices);
 };
 
 
