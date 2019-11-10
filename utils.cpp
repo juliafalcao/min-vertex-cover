@@ -71,21 +71,6 @@ bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b) {
 }
 
 /*
-set operation A-B, removes from A all elements present in B and returns new A
-*/
-INT_LIST subtract(INT_LIST &A, INT_LIST &B) {
-	INT_LIST new_A = {};
-
-	for (auto it = A.begin(); it != A.end(); it++) {
-		if (find(B.begin(), B.end(), *it) == B.end()) {
-			new_A.push_back(*it); // add to new_a elements not in b
-		}
-	}
-
-	return new_A;
-}
-
-/*
 print any ADJ_PAIR_LIST
 */
 void print(ADJ_PAIR_LIST adj) {
@@ -160,6 +145,9 @@ string str(INT_LIST vec) {
 	return str;
 }
 
+/*
+deepcopy of set<int>
+*/
 INT_SET copy_int_set(INT_SET V) {
 	INT_SET C;
 	for (auto it = V.begin(); it != V.end(); it++) C.insert(*it);
@@ -167,7 +155,10 @@ INT_SET copy_int_set(INT_SET V) {
 	return C;
 }
 
-void print_solutions(set<INT_SET> solutions) {
+/*
+given a set of solutions, print each of their sizes
+*/
+void print_solutions(SOLUTION_SET solutions) {
 	INT_SET solution;
 	int i = 0;
 
@@ -176,4 +167,45 @@ void print_solutions(set<INT_SET> solutions) {
 		printf("Solution #%d: size %d\n", i, solution.size());
 		i++;
 	}
+}
+
+/*
+set subtraction
+returns elements that are in A but not in B
+given A = {0,1,2} and B = {1,2,3,4}, then A-B = {0} and B-A = {3,4}
+*/
+INT_SET subtraction(INT_SET A, INT_SET B) {
+	INT_SET subtraction = {};
+	for (auto it = A.begin(); it != A.end(); it++) {
+		if (find(B.begin(), B.end(), *it) == B.end()) {
+			subtraction.insert(*it);
+		}
+	}
+
+	return subtraction;
+}
+
+INT_SET set_intersection(INT_SET A, INT_SET B) {
+	INT_SET intersection = {};
+	for (auto it = A.begin(); it != A.end(); it++) {
+		if (find(B.begin(), B.end(), *it) != B.end()) { // if element is in B too
+			intersection.insert(*it);
+		}
+	}
+
+	return intersection;
+}
+
+INT_SET set_union(INT_SET A, INT_SET B) {
+	for (auto it = B.begin(); it != B.end(); it++) {
+		A.insert(*it);
+	}
+
+	return A;
+}
+
+/* disjunctive union
+*/
+INT_SET symmetric_difference(INT_SET A, INT_SET B) {
+	return set_union(subtraction(A, B), subtraction(B, A));
 }

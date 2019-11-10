@@ -219,7 +219,7 @@ max_it_1st: max iterations of first-improving heuristic at each search iteration
 initial_solution: optional initial solution for the search
 debug_mode: whether to print debug messages
 */
-INT_SET local_search(Graph &g, string type, int max_it, int max_it_1st, int &search_iterations, INT_SET initial_solution, bool debug_mode) {
+INT_SET local_search(Graph &g, int max_it, int max_it_1st, int &search_iterations, INT_SET initial_solution, bool debug_mode) {
 	if (debug_mode) printf("%s - Starting local search\n", g.get_name().c_str());
 
 	INT_SET current_solution = (initial_solution == INT_SET_NULL) ? greedy(g) /* build initial solution */ : initial_solution;
@@ -230,7 +230,7 @@ INT_SET local_search(Graph &g, string type, int max_it, int max_it_1st, int &sea
 	int it = 0;
 
 	while (it < max_it) {
-		first_improving_solution = first_improving(g, current_solution, max_it_1st, time(NULL), debug_mode); // passes iterator as seed to guarantee each first_improving call will select different vertices
+		first_improving_solution = first_improving(g, current_solution, max_it_1st, time(NULL), debug_mode);
 
 		// stop when no longer able to improve solution
 		if (first_improving_solution == INT_SET_NULL) {
@@ -266,7 +266,7 @@ INT_SET rm_local_search(Graph &g, string type, int it_rm, int max_it, int max_it
 	for (auto it = initial_solutions.begin(); it != initial_solutions.end(); it++) {
 		if (debug_mode) printf("Applying local search to initial solution %d of size %d.\n", it_count, it->size());
 
-		solution = local_search(g, "first", max_it, max_it_1st, search_iterations, *it); // run local search using rm solution as initial
+		solution = local_search(g, max_it, max_it_1st, search_iterations, *it); // run local search using rm solution as initial
 		solution_size = solution.size();
 
 		if (solution_size <= best_ls_solution_size) {
@@ -334,7 +334,6 @@ INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug_mode) {
 
 			for (auto v_it = vertices.begin(); v_it != vertices.end(); v_it++) {
 				if (g.degree(*v_it) < min_accepted_degree) break;
-				// if (find(Vc.begin(), Vc.end(), *v_it) != Vc.end()) continue; // skip vertices already in cover
 				RCL.push_back(*v_it);
 			}
 		}
@@ -388,20 +387,17 @@ INT_SET repair(Graph &g, INT_SET incomplete_Vc, int seed) {
 	return Vc;
 }
 
-INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool debug_mode) {
+INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool debug_mode, int target_size) {
 	INT_SET solution = {}, best_solution = {};
-	int solution_size = 0, best_solution_size = INT_MAX;
-	int total_elapsed_time = 0, dt = 0;
+	int solution_size = 0, best_solution_size = INT_MAX, iterations = 0, total_elapsed_time = 0, dt = 0;
 	TIMESTAMP t0 = time();
-	int iterations = 0;
-
 	INT_SET previous_solution = {};
 
 	/* main loop of GRASP procedure */
 	while ((iterations < max_iterations) && (total_elapsed_time < max_time_ms)) { // stopping conditions
 		printf("GRASP iteration %d.\n", iterations);
 		/*
-		phase 1: construction
+		phase 1: construction (semi-greedy)
 		*/
 		t0 = time();
 		solution = semi_greedy(g, iterations+1, alpha, true);
@@ -428,10 +424,345 @@ INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool d
 		*/
 		int max_it = 100, max_it_1st = 300, search_iterations = -1;
 		t0 = time();
-		solution = local_search(g, "first", max_it, max_it_1st, search_iterations, solution);
+		solution = local_search(g, max_it, max_it_1st, search_iterations, solution);
 		dt += elapsed_time(t0);
 		solution_size = solution.size();
 		if (debug_mode) printf("Local search found MVC of size %d in %d search iterations.\n", solution_size, search_iterations);
+		
+		/*
+		conclusion: replace current best solution if the one found is better
+		*/
+		if (solution_size < best_solution_size) {
+			best_solution = solution;
+			best_solution_size = solution_size;
+		}
+
+		if (target_size != -1 && best_solution_size <= target_size) { /* TARGET VERIFICATION */
+			printf("GRASP reached target value.\n");
+			break;
+		}
+
+		total_elapsed_time += dt;
+		iterations++;
+	}
+
+	if (debug_mode) printf("Stopped GRASP at %d elapsed milliseconds & %d iterations.\n", total_elapsed_time, iterations);
+
+	if (verify_vertex_cover(g, solution)) {
+		return best_solution;
+	} else {
+		printf("GRASP returned invalid solution. D:\n");
+		return INT_SET{-1};
+	}
+}
+
+SOLUTION_SET restricted_neighborhood(Graph &g, INT_SET initial_solution, INT_SET guiding_solution) {
+	SOLUTION_SET viable_solutions = {}; // set so that there won't be identical solutions
+
+	if (initial_solution == guiding_solution) return viable_solutions; // neighborhood is empty if the solutions are the same
+	else if (initial_solution.size() < guiding_solution.size()) { // ???
+		printf("(RN) Initial solution shouldn't be better than guiding solution!\n");
+		return viable_solutions;
+	}
+
+	INT_SET possible_solution = {};
+
+	INT_SET diff_to_remove = subtraction(initial_solution, guiding_solution); // elements in Si that are not in Sg
+	INT_SET diff_to_include = subtraction(guiding_solution, initial_solution); // elements in Sg that are not in Si
+
+	for (auto r_it = diff_to_remove.begin(); r_it != diff_to_remove.end(); r_it++) {
+		possible_solution = copy_int_set(initial_solution);
+		possible_solution.erase(find(possible_solution.begin(), possible_solution.end(), *r_it));
+
+		if (verify_vertex_cover(g, possible_solution)) viable_solutions.insert(possible_solution);
+
+		for (auto i_it = diff_to_include.begin(); i_it != diff_to_include.end(); i_it++) {
+			possible_solution.insert(*i_it);
+			if (verify_vertex_cover(g, possible_solution)) viable_solutions.insert(possible_solution);
+		}
+	}
+
+	return viable_solutions;
+}
+
+/*
+Compute the similarity between two solutions
+*/
+float similarity(Graph &g, INT_SET A, INT_SET B) {
+	if (A == B) return 1;
+
+	INT_SET A_minus_B = subtraction(A, B);
+	INT_SET B_minus_A = subtraction(B, A);
+
+	INT_SET difference = {};
+	
+	for (auto it = A_minus_B.begin(); it != A_minus_B.end(); it++) {
+		difference.insert(*it);
+	}
+
+	for (auto it = B_minus_A.begin(); it != B_minus_A.end(); it++) {
+		difference.insert(*it);
+	}
+
+	float difference_cost = difference.size() / (float) g.get_n();
+	return 1.0 - difference_cost;
+}
+
+/*
+Given a solution set, returns the best solution considering the following criteria
+1. Smallest size
+2. Most similar to given solution closer_to
+*/
+INT_SET best_solution(Graph &g, SOLUTION_SET solutions, INT_SET closer_to) {
+	if (solutions.size() == 1) return *solutions.begin();
+
+	int min_size = INT_MAX, solution_size = 0;
+	float max_similarity = 0.0, solution_similarity = 0.0;
+	INT_SET best_solution = {}, solution = {};
+
+	for (auto it = solutions.begin(); it != solutions.end(); it++) {
+		solution = *it;
+		solution_size = solution.size();
+		solution_similarity = similarity(g, solution, closer_to);
+
+		if (solution_size < min_size) {
+			best_solution = solution;
+			min_size = solution_size;
+			max_similarity = solution_similarity;	
+		} else if (solution_size == min_size) {
+			if (solution_similarity > max_similarity) {
+				best_solution = solution;
+				min_size = solution_size;
+				max_similarity = solution_similarity;
+			}
+		}
+	}
+
+	return best_solution;
+}
+
+/*
+Forward path relinking procedure
+*/
+INT_SET forward_path_relinking(Graph &g, INT_SET initial_solution, INT_SET guiding_solution, bool debug_mode) {
+	if (initial_solution.size() < guiding_solution.size()) {
+		if (debug_mode) printf("FPR called for initial solution that is already better than guiding solution. Returning initial.\n");
+		return initial_solution;
+	}
+
+	printf("Starting FPR between initial (%d vertices) and guiding (%d vertices).\n", initial_solution.size(), guiding_solution.size());
+
+	INT_SET general_best = INT_SET_NULL, neighborhood_best = INT_SET_NULL;
+	int min_size = INT_MAX, size_before = 0, improvement = 0;
+	float max_similarity = 0, neighborhood_best_similarity = 0;
+	SOLUTION_SET to_compare = {};
+	int local_search_iterations = -1, it = 0;
+
+	SOLUTION_SET rn = restricted_neighborhood(g, initial_solution, guiding_solution);
+
+	while (rn.size() > 0) {
+		printf("FPR ITERATION %d: RN has %d solutions.\n", it, rn.size());
+
+		neighborhood_best = best_solution(g, rn, guiding_solution); // best & closest to guiding solution
+		if (debug_mode) printf("Neighborhood best solution has %d vertices.\n", neighborhood_best.size());
+
+		if (neighborhood_best.size() > initial_solution.size()) {
+			if (debug_mode) printf("Neighborhood best solution is worse than initial solution (%d > %d vertices).\n", neighborhood_best.size(), initial_solution.size());
+			return general_best != INT_SET_NULL ? general_best : initial_solution; // think abt this
+		}
+		
+		if (neighborhood_best == general_best) { // can't keep going if the solutions are equal
+			if (debug_mode) printf("Current neighborhood best is equal to general best.\n");
+			break;
+		}
+
+		/* neighborhood_best vs. general_best */
+		if (general_best == INT_SET_NULL) {
+			general_best = neighborhood_best;
+		} else {
+			to_compare.insert(neighborhood_best);
+			to_compare.insert(general_best);
+			if (best_solution(g, to_compare, guiding_solution) == general_best) {
+				if (debug_mode) printf("Previous general best is better than neighborhood best. Returning general best (%d vertices).\n", general_best.size());
+				return general_best; // new neighborhood
+			}
+
+			to_compare.clear();
+			
+		}
+
+		/* general best might not be locally optimum: run local search */
+		size_before = general_best.size();
+		general_best = local_search(g, 100, 300, local_search_iterations, general_best);
+		improvement = size_before - general_best.size();
+		if (debug_mode) {
+			if (!improvement) printf("Local search was not able to improve general best.\n");
+			else printf("Local search improved general best by %d vertices. (%d vertices)\n", improvement, general_best.size());
+		}
+
+		/* update general best info */
+		min_size = general_best.size();
+		max_similarity = similarity(g, general_best, guiding_solution);
+
+		if (general_best.size() <= guiding_solution.size()) {
+			printf("Finished FPR after finding solution (%d vertices) equal to or better than guiding solution.\n", min_size, guiding_solution.size());
+			break;
+		} else {
+			// generate new restricted neighborhood to keep going
+			rn = restricted_neighborhood(g, general_best, guiding_solution);
+			it++;
+		}
+	}
+
+	if (debug_mode && rn.size() == 0) printf("Finished FPR because RN is empty.\n");
+
+	return general_best;
+}
+
+/*
+GRASP with path relinking
+*/
+SOLUTION_SET update_elite_set(INT_SET new_solution, SOLUTION_SET elite_set, int max_size, int delta_threshold, bool debug_mode) {
+	if (new_solution == INT_SET_NULL) {
+		error("Update called on null solution.");
+	}
+	
+	int current_size = elite_set.size();
+
+	if (current_size < max_size) { // hasn't reached max_size: decide whether to include solution
+
+		if (current_size == 0) {
+			elite_set.insert(new_solution);
+			if (debug_mode) printf("Solution was added to elite set.\n");
+			return elite_set;
+		} else {
+			int delta = -1, min_delta = INT_MAX;
+	
+			for (auto e_it = elite_set.begin(); e_it != elite_set.end(); e_it++) {
+				delta = symmetric_difference(new_solution, *e_it).size();
+				if (delta < min_delta) min_delta = delta;
+			}
+
+			if (min_delta > delta_threshold) { // only include if min_delta is higher than the threshold
+				elite_set.insert(new_solution);
+				return elite_set;
+			} else {
+				if (debug_mode) printf("Elite set isn't full, but solution wasn't included.\n");
+			}
+		}
+
+	} else { // elite set is in its max size: decide between keeping it as it is or choosing solution to replace with new_solution
+		int largest_size = 0, size = -1;
+		int delta = -1, min_delta = INT_MAX;
+
+		for (auto e_it = elite_set.begin(); e_it != elite_set.end(); e_it++) {
+			/* max size */
+			size = e_it->size();
+			if (size > largest_size) largest_size = size;
+
+			/* min delta */
+			delta = symmetric_difference(new_solution, *e_it).size();
+			if (delta < min_delta) {
+				min_delta = delta;
+			}
+		}
+
+		if ((new_solution.size() < largest_size) && (min_delta > delta_threshold)) { // solution should be included: choose which to remove
+			auto rm_it = elite_set.end();
+			min_delta = INT_MAX, delta = -1;
+
+			for (auto e_it = elite_set.begin(); e_it != elite_set.end(); e_it++) {
+				if (e_it->size() < new_solution.size()) continue;
+
+				delta = symmetric_difference(new_solution, *e_it).size();
+
+				if (delta < min_delta) {
+					min_delta = delta;
+					rm_it = e_it;
+				}
+			}
+			if (rm_it != elite_set.end()) {
+				if (debug_mode) printf("Elite set is full, will remove another solution of %d vertices and include solution (%d vertices).\n", rm_it->size(), new_solution.size());
+				elite_set.erase(rm_it);
+				elite_set.insert(new_solution);
+			} else {
+				printf("YIKES");
+			}
+			
+		}
+	}
+
+	return elite_set;
+}
+
+INT_SET grasp_pr(Graph &g, float alpha, int max_time_ms, int max_iterations, int max_elite, bool debug_mode) {
+	INT_SET solution = {}, best_solution = {}, previous_solution = {}, random_elite = {};
+	int solution_size = 0, best_solution_size = INT_MAX, iterations = 0, total_elapsed_time = 0, dt = 0;
+	TIMESTAMP t0 = time();
+	SOLUTION_SET elite_set = {};
+	srand(time(NULL));
+
+	/* main loop of GRASP procedure */
+	while ((iterations < max_iterations) && (total_elapsed_time < max_time_ms)) { // stopping conditions
+		printf("GRASP-PR ITERATION %d.\n", iterations);
+		/*
+		phase 1: construction (semi-greedy)
+		*/
+		t0 = time();
+		solution = semi_greedy(g, time(NULL), alpha, true);
+		dt = elapsed_time(t0);
+
+		if (solution == previous_solution) {
+			if (debug_mode) printf("New semi-greedy 'solution' is the exact same as the previous one.\n");
+		}
+
+		previous_solution = solution;
+
+		if (!verify_vertex_cover(g, solution)) {
+			if (debug_mode) printf("Constructed solution by semi-greedy is incomplete (%d vertices); will repair.\n", solution.size());
+			t0 = time();
+			solution = repair(g, solution, iterations+1);
+			dt += elapsed_time(t0);
+			if (debug_mode) printf("Repaired solution now has %d vertices.\n", solution.size());
+		} else {
+			if (debug_mode) printf("Constructed solution is valid (%d vertices); onto local search now.\n", solution.size());
+		}
+
+		/*
+		phase 2: local search
+		*/
+		int max_it = 100, max_it_1st = 300, search_iterations = -1;
+		t0 = time();
+		solution = local_search(g, max_it, max_it_1st, search_iterations, solution);
+		dt += elapsed_time(t0);
+		solution_size = solution.size();
+		if (debug_mode) printf("Local search found solution of size %d.\n", solution_size);
+
+		/*
+		phase 3: path relinking between current solution and a random solution from elite set
+		*/
+		t0 = time();
+		if (elite_set.size() > 0) {
+			if (debug_mode) printf("Elite set is not empty...\n");
+			/* choose random solution from elite set */
+			if (elite_set.size() == 1) random_elite = *elite_set.begin();
+			else {
+				auto it = elite_set.begin();
+				advance(it, rand() % elite_set.size());
+				random_elite = *it;
+			}
+
+			if (debug_mode) printf("Random elite set solution has %d vertices.\n", random_elite.size());
+			if (random_elite.size() < 3) {
+				print(random_elite);
+			}
+			solution = forward_path_relinking(g, solution, random_elite, true);
+			solution_size = solution.size();
+			if (debug_mode) printf("FPR returned a solution of %d vertices.\n", solution_size);
+		}
+
+		elite_set = update_elite_set(solution, elite_set, max_elite, 0, debug_mode);
+		dt += elapsed_time(t0);
 		
 		/*
 		conclusion: replace current best solution if the one found is better
@@ -453,110 +784,4 @@ INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool d
 		printf("GRASP returned invalid solution. D:\n");
 		return INT_SET{-1};
 	}
-}
-
-/*
-elements that are in A but not in B
-*/
-INT_LIST left(INT_SET A, INT_SET B) {
-	INT_LIST left = {};
-	for (auto it = A.begin(); it != A.end(); it++) {
-		if (find(B.begin(), B.end(), *it) == B.end()) {
-			left.push_back(*it);
-		}
-	}
-
-	return left;
-}
-
-set<INT_SET> restricted_neighborhood(Graph &g, INT_SET initial_solution, INT_SET guiding_solution) {
-
-	set<INT_SET> viable_solutions = {}; // set so that there won't be identical solutions
-	INT_SET possible_solution = {};
-	int v = -1, vr = -1, vi = -1;
-
-	int size_Si = initial_solution.size(), size_Sg = guiding_solution.size();
-	int largest =  size_Si > size_Sg ? size_Si : size_Sg;
-
-	INT_LIST diff_to_remove = left(initial_solution, guiding_solution); // elements in Si that are not in Sg
-	INT_LIST diff_to_include = left(guiding_solution, initial_solution); // elements in Sg that are not in Si
-
-	for (auto r_it = diff_to_remove.begin(); r_it != diff_to_remove.end(); r_it++) {
-		vr = *r_it;
-		possible_solution = copy_int_set(initial_solution);
-		possible_solution.erase(find(possible_solution.begin(), possible_solution.end(), vr));
-
-		if (verify_vertex_cover(g, possible_solution)) {
-			viable_solutions.insert(possible_solution);
-		}
-
-		for (auto i_it = diff_to_include.begin(); i_it != diff_to_include.end(); i_it++) {
-			vi = *i_it;
-
-			possible_solution.insert(vi);
-
-			if (verify_vertex_cover(g, possible_solution)) {
-				viable_solutions.insert(possible_solution);
-			}
-		}
-	}
-
-	return viable_solutions;
-}
-
-/*
-compute the similarity between two possible solutions
-*/
-float similarity(Graph &g, INT_SET A, INT_SET B) {
-	if (A == B) return 1;
-
-	INT_LIST A_minus_B = left(A, B);
-	INT_LIST B_minus_A = left(B, A);
-
-	INT_SET difference = {};
-	
-	for (auto it = A_minus_B.begin(); it != A_minus_B.end(); it++) {
-		difference.insert(*it);
-	}
-
-	for (auto it = B_minus_A.begin(); it != B_minus_A.end(); it++) {
-		difference.insert(*it);
-	}
-
-	float difference_cost = difference.size() / (float) g.get_n();
-	return 1.0 - difference_cost;
-}
-
-INT_SET best_solution(Graph &g, set<INT_SET> solutions, INT_SET closer_to) {
-	/*
-	first criteria: size (minimize)
-	un-tie criteria: similarity (maximize)
-	*/
-	int min_size = INT_MAX, solution_size = 0;
-	float max_similarity = 0.0, solution_similarity = 0.0;
-	INT_SET best_solution = {}, solution = {};
-	bool compare_similarity = closer_to.size() > 0;
-
-	for (auto it = solutions.begin(); it != solutions.end(); it++) {
-		solution = *it;
-		solution_size = solution.size();
-		if (compare_similarity) solution_similarity = similarity(g, solution, closer_to);
-
-		if (solution_size < min_size) {
-			best_solution = solution;
-			min_size = solution_size;
-
-			if (compare_similarity) max_similarity = solution_similarity;
-			
-		} else if (compare_similarity && solution_size == min_size) {
-			if (solution_similarity > max_similarity) {
-
-				best_solution = solution;
-				min_size = solution_size;
-				max_similarity = solution_similarity;
-			}
-		}
-	}
-
-	return best_solution;
 }

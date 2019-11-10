@@ -30,7 +30,8 @@ typedef vector<INT_LIST_PAIR> ADJ_PAIR_LIST;
 typedef pair<int,int> INT_PAIR;
 typedef vector<INT_PAIR> INT_PAIR_LIST;
 typedef set<int> INT_SET;
-typedef vector<set<int>> INT_SET_LIST;
+typedef vector<INT_SET> INT_SET_LIST;
+typedef set<INT_SET> SOLUTION_SET;
 
 /* helpers */
 void error(string message);
@@ -41,16 +42,18 @@ long elapsed_time(time_point<system_clock> since);
 
 /* structure functions */
 bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b);
-INT_LIST subtract(INT_LIST A, INT_LIST B);
 int count_occurrences(INT_LIST V, int x);
 INT_SET copy_int_set(INT_SET V);
+INT_SET subtraction(INT_SET A, INT_SET B);
+INT_SET set_union(INT_SET A, INT_SET B);
+INT_SET symmetric_difference(INT_SET A, INT_SET B);
 
 /* printers */
 void print(ADJ_PAIR_LIST adj);
 void print(INT_SET V);
 void print(INT_PAIR_LIST V);
 void print(INT_LIST V);
-void print_solutions(set<INT_SET> solutions);
+void print_solutions(SOLUTION_SET solutions);
 
 /* vector to string */
 string str(FLOAT_LIST vec);
