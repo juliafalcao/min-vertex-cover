@@ -330,7 +330,10 @@ INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug_mode) {
 		} else {
 			max_degree = g.degree(vertices.front());
 			min_degree = g.degree(vertices.back());
-			min_accepted_degree = min_degree + (int) floor(alpha*(max_degree-min_degree));
+			// min_accepted_degree = min_degree + (int) floor(alpha*(max_degree-min_;degree)); // (!)
+			min_accepted_degree = max_degree - (int) floor(alpha*(max_degree-min_degree));
+
+			if (debug_mode) printf("Max degree = %d, min degree = %d, min accepted = %d\n", max_degree, min_degree, min_accepted_degree);
 
 			for (auto v_it = vertices.begin(); v_it != vertices.end(); v_it++) {
 				if (g.degree(*v_it) < min_accepted_degree) break;
@@ -342,6 +345,7 @@ INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug_mode) {
 
 		/* select random vertex from RCL and add it to cover */
 		v = RCL[rand() % RCL.size()];
+		if (debug_mode) printf("Randomly chosen vertex from RCL: %d\n", v);
 		Vc.insert(v);
 		vertices.erase(find(vertices.begin(), vertices.end(), v));
 
@@ -400,7 +404,7 @@ INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool d
 		phase 1: construction (semi-greedy)
 		*/
 		t0 = time();
-		solution = semi_greedy(g, iterations+1, alpha, true);
+		solution = semi_greedy(g, time(NULL)*(iterations+1), alpha, false);
 		dt = elapsed_time(t0);
 
 		if (solution == previous_solution) {
@@ -513,7 +517,7 @@ Given a solution set, returns the best solution considering the following criter
 1. Smallest size
 2. Most similar to given solution closer_to
 */
-INT_SET best_solution(Graph &g, SOLUTION_SET solutions, INT_SET closer_to) {
+INT_SET best_solution(Graph &g, SOLUTION_SET solutions, INT_SET closer_to, bool &tie) {
 	if (solutions.size() == 1) return *solutions.begin();
 
 	int min_size = INT_MAX, solution_size = 0;
@@ -534,6 +538,8 @@ INT_SET best_solution(Graph &g, SOLUTION_SET solutions, INT_SET closer_to) {
 				best_solution = solution;
 				min_size = solution_size;
 				max_similarity = solution_similarity;
+			} else if (solution_similarity == max_similarity) {
+				tie = true;
 			}
 		}
 	}
@@ -557,18 +563,21 @@ INT_SET forward_path_relinking(Graph &g, INT_SET initial_solution, INT_SET guidi
 	float max_similarity = 0, neighborhood_best_similarity = 0;
 	SOLUTION_SET to_compare = {};
 	int local_search_iterations = -1, it = 0;
+	bool tie = false;
+	int rn_size=0, last_sol_size=0;
 
 	SOLUTION_SET rn = restricted_neighborhood(g, initial_solution, guiding_solution);
 
 	while (rn.size() > 0) {
 		printf("FPR ITERATION %d: RN has %d solutions.\n", it, rn.size());
 
-		neighborhood_best = best_solution(g, rn, guiding_solution); // best & closest to guiding solution
+		neighborhood_best = best_solution(g, rn, guiding_solution, tie); // best & closest to guiding solution
+		tie = false; // don't care
 		if (debug_mode) printf("Neighborhood best solution has %d vertices.\n", neighborhood_best.size());
 
 		if (neighborhood_best.size() > initial_solution.size()) {
 			if (debug_mode) printf("Neighborhood best solution is worse than initial solution (%d > %d vertices).\n", neighborhood_best.size(), initial_solution.size());
-			return general_best != INT_SET_NULL ? general_best : initial_solution; // think abt this
+			return general_best != INT_SET_NULL ? general_best : initial_solution;
 		}
 		
 		if (neighborhood_best == general_best) { // can't keep going if the solutions are equal
@@ -582,13 +591,13 @@ INT_SET forward_path_relinking(Graph &g, INT_SET initial_solution, INT_SET guidi
 		} else {
 			to_compare.insert(neighborhood_best);
 			to_compare.insert(general_best);
-			if (best_solution(g, to_compare, guiding_solution) == general_best) {
-				if (debug_mode) printf("Previous general best is better than neighborhood best. Returning general best (%d vertices).\n", general_best.size());
-				return general_best; // new neighborhood
+			general_best = best_solution(g, to_compare, guiding_solution, tie);
+			if (tie) {
+				printf("General best is equal in size and similarity to neighborhood best (%d vertices). Can't improve more.\n", general_best.size());
+				return general_best;
 			}
 
 			to_compare.clear();
-			
 		}
 
 		/* general best might not be locally optimum: run local search */
@@ -612,11 +621,19 @@ INT_SET forward_path_relinking(Graph &g, INT_SET initial_solution, INT_SET guidi
 			rn = restricted_neighborhood(g, general_best, guiding_solution);
 			it++;
 		}
+
+		if (rn.size() == rn_size && general_best.size() == last_sol_size) {
+			printf("Method was about to loop again. Returning general best.\n");
+			return general_best;
+		} else {
+			rn_size = rn.size();
+			last_sol_size = general_best.size();
+		}
 	}
 
 	if (debug_mode && rn.size() == 0) printf("Finished FPR because RN is empty.\n");
 
-	return general_best;
+	return general_best == INT_SET_NULL ? initial_solution : general_best;
 }
 
 /*
@@ -624,7 +641,8 @@ GRASP with path relinking
 */
 SOLUTION_SET update_elite_set(INT_SET new_solution, SOLUTION_SET elite_set, int max_size, int delta_threshold, bool debug_mode) {
 	if (new_solution == INT_SET_NULL) {
-		error("Update called on null solution.");
+		printf("[!] Update called on null solution.");
+		return elite_set;
 	}
 	
 	int current_size = elite_set.size();
@@ -709,7 +727,7 @@ INT_SET grasp_pr(Graph &g, float alpha, int max_time_ms, int max_iterations, int
 		phase 1: construction (semi-greedy)
 		*/
 		t0 = time();
-		solution = semi_greedy(g, time(NULL), alpha, true);
+		solution = semi_greedy(g, time(NULL)*(iterations+1), alpha, false);
 		dt = elapsed_time(t0);
 
 		if (solution == previous_solution) {

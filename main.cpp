@@ -39,11 +39,14 @@ int main(void) {
 		error("Error opening file to print results.\n");
 	}
 
-	outfile << "instance,max_time,max_it,alpha,max_elite,runtime,mvc_size\n"; // csv header
+	outfile << "instance,max_time,max_it,alpha,runtime,mvc_size\n"; // csv header
 	outfile.close();
 
-	for (auto it = filenames.begin(); it != filenames.end(); it++) { // all instances
-		// if (*it != "c-fat200-1.clq-compliment.txt") continue; // debugging!
+	auto first = find(filenames.begin(), filenames.end(), "p_hat1500-3.clq-compliment.txt");
+	// auto first = filenames.begin();
+
+	for (auto it = first; it != filenames.end(); it++) { // all instances
+		// while (*it != "c-fat200-5.clq-compliment.txt") continue; // debugging!
 
 		INSTANCE inst{ Graph(GRAPHS_PATH, *it) };
 		inst.name = inst.graph.get_name();
@@ -52,12 +55,13 @@ int main(void) {
 
 		/* run method and store result */
 		float grasp_alpha = 0.3;
-		int max_grasp_time = 3*60*1000; // 2min
+		int max_grasp_time = 2*60*1000; // 2min
 		int max_grasp_iterations = 30;
 		int max_elite_set_size = 5;
 	
 		TIMESTAMP t0 = time();
 		inst.mvc = grasp_pr(inst.graph, grasp_alpha, max_grasp_time, max_grasp_iterations, max_elite_set_size, true);
+		// inst.mvc = grasp(inst.graph, grasp_alpha, max_grasp_time, max_grasp_iterations, true);
 		long dt = elapsed_time(t0);
 
 		if (inst.mvc != INT_SET_NULL) { // it worked!
@@ -107,7 +111,7 @@ int test_main(void) {
 
 
 	for (auto it = test_filenames.begin(); it != test_filenames.end(); it++) { // only test instances
-		if (*it != "p_hat300-2.clq-compliment.txt") continue; // debugging!
+		// if (*it != "p_hat300-2.clq-compliment.txt") continue; // debugging!
 
 		/* update elite set */
 

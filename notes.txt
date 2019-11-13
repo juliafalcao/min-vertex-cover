@@ -1,0 +1,9 @@
+perl tttplots.pl -f file_name
+file_name tem que ser um arquivo de nome file_name.dat
+
+cada linha do arquivo tem que ter o tempo de execução da iteração até atingir um valor de solução target no GRASP
+
+
+
+test: brock800_2
+target: 785

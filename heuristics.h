@@ -30,7 +30,7 @@ INT_SET grasp(Graph &g, float alpha, int max_time_ms, int max_iterations, bool d
 /* path relinking */
 SOLUTION_SET restricted_neighborhood(Graph &g, INT_SET initial_solution, INT_SET guiding_solution);
 float similarity(Graph &g, INT_SET A, INT_SET B);
-INT_SET best_solution(Graph &g, SOLUTION_SET solutions, INT_SET closer_to);
+INT_SET best_solution(Graph &g, SOLUTION_SET solutions, INT_SET closer_to, bool &tie);
 INT_SET forward_path_relinking(Graph &g, INT_SET initial_solution, INT_SET guiding_solution, bool debug_mode=false);
 SOLUTION_SET update_elite_set(INT_SET new_solution, SOLUTION_SET elite_set, int max_size, int delta_threshold=0, bool debug_mode=false);
 INT_SET grasp_pr(Graph &g, float alpha, int max_time_ms, int max_iterations, int max_elite, bool debug_mode=false);
