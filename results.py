@@ -40,5 +40,23 @@ df["t(grasp-pr)"] = df["t(grasp-pr)"].apply(lambda x: x*0.001)
 df.to_csv("results/formatted_grasp.csv", index=False)
 
 # line plot
+df = df[df["instance"] != "c-fat500-10"] # outlier
+df = df[(df["grasp"] >= df["opt"]) & (df["grasp-pr"] >= df["opt"])]
+df = df.sort_values(by="instance")
 df["grasp"] = df["opt"]/df["grasp"]
-df["grasp"] = df["opt"]/df["grasp-pr"]
+df["grasp-pr"] = df["opt"]/df["grasp-pr"]
+
+x = range(len(df["instance"]))
+x_labels = df["instance"]
+y1 = df["grasp"]
+y2 = df["grasp-pr"]
+
+fig, ax = plt.subplots(1,1)
+plt.subplots_adjust(bottom=0.2)
+ax.plot(x, y1, color="lightseagreen", marker="o", markersize=2, label="GRASP", zorder=3)
+ax.plot(x, y2, color="coral", marker="o", markersize=2, label="GRASP+PR", zorder=3)
+ax.plot(x, [1.0] * len(x), color="lightskyblue", label="OPT", zorder=0)
+plt.xticks(ticks=x, labels=x_labels, rotation="vertical")
+plt.tick_params(axis="x", labelsize=7)
+plt.legend()
+plt.show()
