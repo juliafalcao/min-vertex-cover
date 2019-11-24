@@ -16,18 +16,11 @@ typedef vector<INSTANCE> INSTANCE_LIST;
 
 int main(void) {
 
-	string test_instance = "johnson8-2-4.clq-compliment.txt";
+	string test_instance = "brock200_1.clq-compliment.txt";
 
 	Graph g = Graph(GRAPHS_PATH, test_instance);
 
-	BINARY_SOLUTIONS population = initialize_population(g, 10);
-	srand(time(0));
-
-	for (int i = 0; i < 10; i++) {
-		BINARY_LIST s = roulette_wheel_selection(population);
-		printf("Roulette wheel selection: size = %d, fitness = %.5f\n", cost(s), fitness(s));
-		print(s);
-	}
+	BINARY_LIST s = genetic_algorithm(g, 50, 0.6, 0.1, 4, true);
 
 	return 0;
 }

@@ -36,6 +36,7 @@ typedef vector<INT_SET> INT_SET_LIST;
 typedef set<INT_SET> SOLUTION_SET;
 typedef vector<int> BINARY_LIST;
 typedef vector<BINARY_LIST> BINARY_SOLUTIONS;
+typedef set<BINARY_LIST> BINARY_LIST_SET;
 
 
 /* helpers */
