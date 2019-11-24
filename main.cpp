@@ -15,30 +15,19 @@ typedef vector<INSTANCE> INSTANCE_LIST;
 
 
 int main(void) {
+
 	string test_instance = "johnson8-2-4.clq-compliment.txt";
 
 	Graph g = Graph(GRAPHS_PATH, test_instance);
 
-	BINARY_LIST_SET population = initialize_population(g, 5);
+	BINARY_SOLUTIONS population = initialize_population(g, 10);
+	srand(time(0));
 
-	auto it = population.begin();
-	BINARY_LIST A = *it;
-	advance(it, 1);
-	BINARY_LIST B = *it, C, D;
-	BINARY_LIST_SET offspring = single_point_crossover(A, B);
-
-	printf("OFFSPRING:\n");
-	for (auto it = offspring.begin(); it != offspring.end(); it++) {
-		print(*it);
-		C = *it;
+	for (int i = 0; i < 10; i++) {
+		BINARY_LIST s = roulette_wheel_selection(population);
+		printf("Roulette wheel selection: size = %d, fitness = %.5f\n", cost(s), fitness(s));
+		print(s);
 	}
-
-	printf("C: ");
-	print(C);
-	printf("D: ");
-	D = mutation(C, 0.9);
-	print(D);
-
 
 	return 0;
 }

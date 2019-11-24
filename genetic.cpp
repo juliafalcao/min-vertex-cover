@@ -80,17 +80,45 @@ BINARY_LIST mutation(BINARY_LIST solution, float probability) {
 	return solution;
 }
 
+float fitness(BINARY_LIST solution) {
+	int n = solution.size(); // graph size
+	int vc = cost(solution); // solution "size" (cost)
+
+	return (float) n / (float)(1+vc);
+}
+
 BINARY_LIST roulette_wheel_selection(BINARY_SOLUTIONS population) {
+	int n = population.begin()->size();
+	float fitness_sum = 0.0, random_point = -1.0, partial = 0.0;
 	
+	for (auto it = population.begin(); it != population.end(); it++) {
+		fitness_sum += fitness(*it);
+	}
+
+	random_point = randf(0.0, fitness_sum);
+
+	for (auto it = population.begin(); it != population.end(); it++) {
+		partial += fitness(*it);
+
+		if (partial > random_point) {
+			return *it;
+		}
+	}
+
+	return BINARY_LIST_NULL;
 }
 
 BINARY_LIST genetic_algorithm(Graph &g) {
 
-	BINARY_LIST_SET population = initialize_population(g, 50);
+	BINARY_SOLUTIONS population = initialize_population(g, 50);
 
-	while (true) { // stop criteria ?
-		/* select parents for crossover */
 
-	}
+
+	// while (true) { // stop criteria ?
+		// /* select parents for crossover */
+
+	// }
+
+	return BINARY_LIST_NULL;
 
 }

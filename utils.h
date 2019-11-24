@@ -66,4 +66,7 @@ BINARY_LIST copy(BINARY_LIST A);
 string str(FLOAT_LIST vec);
 string str(INT_LIST vec);
 
+/* random */
+float randf(float min, float max);
+
 #endif

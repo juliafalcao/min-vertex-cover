@@ -216,3 +216,8 @@ INT_SET set_union(INT_SET A, INT_SET B) {
 INT_SET symmetric_difference(INT_SET A, INT_SET B) {
 	return set_union(subtraction(A, B), subtraction(B, A));
 }
+
+
+float randf(float min, float max) {
+	return  (max - min) * ((((float) rand()) / (float) RAND_MAX)) + min;
+}

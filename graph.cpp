@@ -171,8 +171,6 @@ INT_PAIR_LIST Graph::get_edges_copy(void) {
 	return copy;
 }
 
-
-
 int Graph::get_n(void) {
 	return this->n;
 }
