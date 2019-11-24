@@ -112,6 +112,13 @@ void print(INT_PAIR_LIST V) {
 	printf("}\n");
 }
 
+BINARY_LIST copy(BINARY_LIST A) {
+	BINARY_LIST B(A.size());
+	for (int i = 0; i < A.size(); i++) B[i] = A[i];
+
+	return B;
+}
+
 /*
 count occurrences of x in list A
 */

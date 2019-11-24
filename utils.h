@@ -19,6 +19,8 @@ using namespace std::chrono;
 /* constants */
 #define TIMESTAMP time_point<system_clock>
 #define INT_SET_NULL INT_SET{-1} // to be used when errors happen in functions that return INT_SET
+#define BINARY_LIST_NULL BINARY_LIST{-1}
+#define BINARY_SOLUTIONS_NULL BINARY_SOLUTIONS{BINARY_LIST_NULL}
 #define INT_MAX 2147483647
 
 /* custom types */
@@ -32,6 +34,9 @@ typedef vector<INT_PAIR> INT_PAIR_LIST;
 typedef set<int> INT_SET;
 typedef vector<INT_SET> INT_SET_LIST;
 typedef set<INT_SET> SOLUTION_SET;
+typedef vector<int> BINARY_LIST;
+typedef vector<BINARY_LIST> BINARY_SOLUTIONS;
+
 
 /* helpers */
 void error(string message);
@@ -54,6 +59,8 @@ void print(INT_SET V);
 void print(INT_PAIR_LIST V);
 void print(INT_LIST V);
 void print_solutions(SOLUTION_SET solutions);
+
+BINARY_LIST copy(BINARY_LIST A);
 
 /* vector to string */
 string str(FLOAT_LIST vec);

@@ -1,5 +1,4 @@
 #include "main.h"
-#include "heuristics.h"
 
 #define GRAPHS_PATH "test_data/clique_complements/"
 
@@ -15,8 +14,37 @@ typedef struct instance {
 typedef vector<INSTANCE> INSTANCE_LIST;
 
 
-
 int main(void) {
+	string test_instance = "johnson8-2-4.clq-compliment.txt";
+
+	Graph g = Graph(GRAPHS_PATH, test_instance);
+
+	BINARY_LIST_SET population = initialize_population(g, 5);
+
+	auto it = population.begin();
+	BINARY_LIST A = *it;
+	advance(it, 1);
+	BINARY_LIST B = *it, C, D;
+	BINARY_LIST_SET offspring = single_point_crossover(A, B);
+
+	printf("OFFSPRING:\n");
+	for (auto it = offspring.begin(); it != offspring.end(); it++) {
+		print(*it);
+		C = *it;
+	}
+
+	printf("C: ");
+	print(C);
+	printf("D: ");
+	D = mutation(C, 0.9);
+	print(D);
+
+
+	return 0;
+}
+
+
+int old_main(void) {
 	// get all filenames from dir
 	STR_LIST filenames = list_dir(GRAPHS_PATH);
 	STR_LIST test_filenames = {};
