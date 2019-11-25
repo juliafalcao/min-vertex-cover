@@ -11,8 +11,6 @@ Graph::Graph(string path, string filename, bool directed) {
 	make_graph(path, filename);
 	this->m = this->edges.size();
 	this->vertices = this->get_vertex_list();
-	printf("Vertex list: ");
-	print(this->vertices);
 }
 
 Graph::Graph(INT_SET test_vertices) {
