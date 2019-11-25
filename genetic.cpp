@@ -3,10 +3,12 @@
 
 BINARY_LIST convert_solution(Graph &g, INT_SET solution) {
 	BINARY_LIST binary(g.get_n());
-	fill(binary.begin(), binary.end(), false);
+	fill(binary.begin(), binary.end(), 0);
+	int v;
 
 	for (auto it = solution.begin(); it != solution.end(); it++) {
-		binary[*it] = true;
+		v = *it;
+		binary[v] = 1;
 	}
 
 	return binary;
@@ -14,16 +16,17 @@ BINARY_LIST convert_solution(Graph &g, INT_SET solution) {
 
 BINARY_SOLUTIONS initialize_population(Graph &g, int n, bool debug) {
 	INT_SET solution;
-	BINARY_SOLUTIONS binary_solutions;
+	BINARY_SOLUTIONS solutions;
+	BINARY_LIST binary;
 
 	for (int i = 1; i <= n; i++) {
 		solution = greedy(g, i);
-		BINARY_LIST binary = convert_solution(g, solution);
-		binary_solutions.push_back(binary);
+		binary = convert_solution(g, solution);
+		solutions.push_back(binary);
 		if (debug) printf("Initial population <- [%d]\n", cost(binary));
 	}
 
-	return binary_solutions;
+	return solutions;
 }
 
 int cost(BINARY_LIST solution) {
@@ -41,19 +44,22 @@ BINARY_SOLUTIONS single_point_crossover(BINARY_LIST A, BINARY_LIST B) {
 	BINARY_LIST D = copy(B);
 	
 	int min_size = A.size() < B.size() ? A.size() : B.size();
-	int crossover_point = 6; // rand() % (min_size-1);
-	printf("Crossover point: %d\n", crossover_point);
+	INT_LIST candidate_points = {};
 
-	bool crossed = false;
-	for (int i = crossover_point; i < min_size; i++) { // TODO: this isn't crossing over at the exact point
-		if (A[i] != B[i]) {
-			C[i] = B[i];
-			D[i] = A[i];
-			crossed = true;
-		} else {
-			if (crossed) break;
-			else continue;
-		}
+	for (int i = 0; i < min_size; i++) {
+		if (A[i] != B[i]) candidate_points.push_back(i);
+	}
+
+	printf("Candidate crossover points: ");
+
+	int crossover_point = candidate_points[rand() % candidate_points.size()];
+	printf("Chosen crossover point: %d\n", crossover_point);
+
+	for (int i = crossover_point; i < min_size; i++) {
+		if (A[i] == B[i]) break;
+
+		C[i] = B[i];
+		D[i] = A[i];
 	}
 
 	if (C != A) offspring.push_back(C);
@@ -212,7 +218,13 @@ BINARY_LIST genetic_algorithm(Graph &g, int population_size, float crossover_fra
 		eval fitness: add offspring to population and sort by fitness
 		*/
 		population.insert(population.end(), offspring.begin(), offspring.end());
+		printf("before sorting:\n");
+		describe_solutions(population);
 		sort(population.begin(), population.end(), highest_fitness_comparator);
+		/*! THROWING BAD_ALLOC HERE */
+
+		printf("after sorting:\n");
+		describe_solutions(population);
 
 		/* new population: keep only the most fit (by population size) */
 		BINARY_SOLUTIONS new_population = BINARY_SOLUTIONS(population.begin(), population.begin()+population_size);
@@ -226,9 +238,11 @@ BINARY_LIST genetic_algorithm(Graph &g, int population_size, float crossover_fra
 		*/
 		float max_f = fitness(population.front());
 		float min_f = fitness(population.back());
+		printf("Population min = %.3f, max = %.3f\n", min_f, max_f);
 
 		if (max_f == max_fitness && min_f == min_fitness) {
 			converging_iterations++;
+			printf("Converging %d/%d.\n", converging_iterations, convergence);
 
 			if (converging_iterations >= convergence) { // the end
 				if (debug) printf("Finishing after %d converging iterations.\n", converging_iterations);

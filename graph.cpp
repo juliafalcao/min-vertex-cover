@@ -8,28 +8,16 @@ Graph::Graph(string path, string filename, bool directed) {
 	int s = this->file_suffix_to_remove.length();
 	this->name = filename.substr(0, filename.length()-s);
 
-	make_graph(path, filename, this->n);
+	make_graph(path, filename);
 	this->m = this->edges.size();
+	this->vertices = this->get_vertex_list();
+	printf("Vertex list: ");
+	print(this->vertices);
 }
 
 Graph::Graph(INT_SET test_vertices) {
 	this->n = test_vertices.size();
 	this->m = -1;
-}
-
-/*
-print adjacencies list
-*/
-void Graph::print_adj() {
-	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
-		cout << it->first << ": { ";
-		
-		for (auto v_it = it->second.begin(); v_it != it->second.end(); v_it++) {
-			cout << *v_it << " ";
-		}
-
-		cout << "}" << endl;
-	}
 }
 
 /*
@@ -44,9 +32,9 @@ void Graph::print_edges() {
 }
 
 /*
-function that opens graph file and builds its adjacency or edges list
+function that opens graph file and builds its edges list
 */
-void Graph::make_graph(string path, string filename, int &n_vertices) {
+void Graph::make_graph(string path, string filename) {
 	string line;
 	string filepath = path + filename;
 	ifstream file(filepath, ifstream::binary);
@@ -58,7 +46,6 @@ void Graph::make_graph(string path, string filename, int &n_vertices) {
 	int a = 0, b = 0; // edge vertices
 	string buffer;
 	bool line0 = true;
-	ADJ_PAIR_LIST adj;
 	// INT_PAIR_LIST edges;
 	this->edges = {};
 
@@ -87,16 +74,7 @@ void Graph::make_graph(string path, string filename, int &n_vertices) {
 				i1 = find(line, " ", i+1);
 				buffer = line.substr(i+1, i1-i-1);
 				n = stoi(buffer); // number of vertices
-				n_vertices = n;
-
-				/* parse edge count here if needed */
-
-				// initialize adj list
-				for (int v = 1; v <= n; v++) {
-					INT_LIST v_adj = {};
-					INT_LIST_PAIR v_adj_pair = make_pair(v, v_adj);
-					adj.push_back(v_adj_pair);
-				}
+				this->n = n;
 			}
 		}
 
@@ -107,16 +85,10 @@ void Graph::make_graph(string path, string filename, int &n_vertices) {
 			buffer = line.substr(i0+1, line.length()-i0);
 			b = stoi(buffer);
 
-			// add edge to adjacency list
-			for (auto it = adj.begin(); it != adj.end(); it++) {
-				if (it->first == a) {
-					it->second.push_back(b);
-				}
-
-				else if (it->first == b && !this->directed) {
-					it->second.push_back(a);
-				}
-			}
+			// convert 1-indexed vertices to 0-indexed
+			if (!a || !b) error("SHIT");
+			a = a-1;
+			b = b-1;
 
 			// add edge to edges list
 			INT_PAIR edge = make_pair(a, b);
@@ -128,34 +100,8 @@ void Graph::make_graph(string path, string filename, int &n_vertices) {
 
 	file.close();
 
-	this->adj = adj; // TODO: edit this->adj inplace instead of saving later
 	return;
 } // make_graph
-
-void Graph::sort_adj_by_most_neighbors(void) {
-	sort(this->adj.begin(), this->adj.end(), most_values_comparator);
-}
-
-ADJ_PAIR_LIST Graph::get_adj_copy(void) { // TODO: move to utils.cpp
-	int v;
-	INT_LIST v_adj = {};
-	INT_LIST_PAIR v_adj_pair;
-	ADJ_PAIR_LIST copy;
-
-	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
-		v = it->first;
-		v_adj = {};
-		
-		for (auto vit = it->second.begin(); vit != it->second.end(); vit++) {
-			v_adj.push_back(*vit);
-		}
-
-		v_adj_pair = make_pair(v, v_adj);
-		copy.push_back(v_adj_pair);
-	}
-
-	return copy;
-}
 
 INT_PAIR_LIST Graph::get_edges_copy(void) {
 	int a, b;
@@ -183,33 +129,56 @@ string Graph::get_name(void) {
 	return this->name;
 }
 
-INT_LIST Graph::get_vertex_adj(int vertex) {
-	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
-		if (it->first == vertex) {
-			return it->second;
-		}
+int Graph::degree(int vertex) {
+	int degree = 0;
+	for (auto it = edges.begin(); it != edges.end(); it++) {
+		if (it->first == vertex || it->second == vertex) degree++;
 	}
 
-	return {-1};
-}
-
-int Graph::degree(int vertex) {
-	INT_LIST v_adj = get_vertex_adj(vertex);
-	return v_adj.size(); // the size of this vertex's adjacency list
+	return degree;
 }
 
 INT_LIST Graph::get_vertex_list(void) {
-	INT_LIST vertices = {};
-	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
-		vertices.push_back(it->first);
+	INT_SET vertices_set = {};
+
+	for (auto it = this->edges.begin(); it != this->edges.end(); it++) {
+		vertices_set.insert(it->first);
+		vertices_set.insert(it->second);
 	}
 
+	INT_LIST vertices(vertices_set.begin(), vertices_set.end());
 	return vertices;
 }
 
 /*
-comparer function that returns whether v1 should be placed before v2 or not
+functions to get the minimum and maximum degree values for the vertices in the graph
 */
+int Graph::min_degree(void) {
+	int min_degree = INT_MAX, degree;
+
+
+	for (auto it = this->vertices.begin(); it != this->vertices.end(); it++) {
+		degree = this->degree(*it); // vertex degree
+
+		if (degree < min_degree) min_degree = degree;
+	}
+
+	return min_degree;
+}
+
+int Graph::max_degree(void) {
+	int max_degree = 0, degree;
+
+	for (auto it = this->vertices.begin(); it != this->vertices.end(); it++) {
+		degree = this->degree(*it);
+
+		if (degree > max_degree) max_degree = degree;
+	}
+
+	return max_degree;
+}
+
+
 bool Graph::compare_degree_reverse(int v1, int v2) {
 	int d1 = this->degree(v1);
 	int d2 = this->degree(v2);
@@ -223,35 +192,4 @@ INT_LIST Graph::sort_vertices_by_higher_degree(INT_LIST vertices) {
 	);
 
 	return vertices;
-}
-
-/*
-functions to get the minimum and maximum degree values for the vertices in the graph
-*/
-int Graph::min_degree(void) {
-	int min_degree = INT_MAX, degree = -1;
-
-	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
-		degree = this->degree(it->first); // vertex degree
-
-		if (degree < min_degree) {
-			min_degree = degree;
-		}
-	}
-
-	return min_degree;
-}
-
-int Graph::max_degree(void) {
-	int max_degree = 0, degree = -1;
-
-	for (auto it = this->adj.begin(); it != this->adj.end(); it++) {
-		degree = this->degree(it->first);
-
-		if (degree > max_degree) {
-			max_degree = degree;
-		}
-	}
-
-	return max_degree;
 }

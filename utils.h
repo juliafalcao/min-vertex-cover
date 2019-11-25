@@ -27,8 +27,6 @@ using namespace std::chrono;
 typedef vector<int> INT_LIST;
 typedef vector<float> FLOAT_LIST;
 typedef vector<string> STR_LIST;
-typedef pair<int, INT_LIST> INT_LIST_PAIR;
-typedef vector<INT_LIST_PAIR> ADJ_PAIR_LIST;
 typedef pair<int,int> INT_PAIR;
 typedef vector<INT_PAIR> INT_PAIR_LIST;
 typedef set<int> INT_SET;
@@ -47,7 +45,6 @@ TIMESTAMP time();
 long elapsed_time(time_point<system_clock> since);
 
 /* structure functions */
-bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b);
 int count_occurrences(INT_LIST V, int x);
 INT_SET copy_int_set(INT_SET V);
 INT_SET subtraction(INT_SET A, INT_SET B);
@@ -55,7 +52,6 @@ INT_SET set_union(INT_SET A, INT_SET B);
 INT_SET symmetric_difference(INT_SET A, INT_SET B);
 
 /* printers */
-void print(ADJ_PAIR_LIST adj);
 void print(INT_SET V);
 void print(INT_PAIR_LIST V);
 void print(INT_LIST V);
