@@ -197,36 +197,6 @@ void describe_solutions(SOLUTIONS_LIST list) {
 	printf("}\n");
 }
 
-/*
-generate amount of new different solutions randomly based on the given one
-*/
-SOLUTIONS_LIST diversify(Graph &g, BINARY_LIST solution, int amount, bool debug) {
-	int n = solution.size();
-	set<BINARY_LIST> solutions_set = {};
-	if (debug) printf("Diversify will generate %d new solutions from [%d].\n", amount, cost(solution));
-
-	while (solutions_set.size() != amount) {
-		int changes = rand() % (int) ceil(0.15*n); // some amount between 0 and 10% of graph size
-
-		for (int _ = 0; _ < changes; _++) {
-			int index = rand() % n;
-			solution[index] = !solution[index]; // flip bit at random position
-		}
-
-		if (debug) printf("New diverse [%d] generated (%d bits flipped).\n", cost(solution), changes);
-
-		bool tr;
-		solution = verify_and_repair(g, solution, tr); // repair modified solution if needed
-		if (debug) printf("Solution [%d] repaired.\n", cost(solution));
-
-		solutions_set.insert(solution);
-	}
-
-	// convert to vector instead of set
-	SOLUTIONS_LIST solutions = SOLUTIONS_LIST(solutions_set.begin(), solutions_set.end());
-
-	return solutions;
-}
 
 BINARY_LIST genetic_algorithm(Graph &g, int np, float crossover, float mutation_probability, int stability, bool debug) {
 	if (np <= 2) error("Population size must be larger than 2 individuals.");
@@ -248,7 +218,7 @@ BINARY_LIST genetic_algorithm(Graph &g, int np, float crossover, float mutation_
 
 	if (debug) printf("Initial population: %d solutions, fitnesses: %.3f - %.3f.\n", np, min_fitness, max_fitness);
 
-	while (true) { // stop criteria ?
+	while (true) {
 		printf("GENETIC ALGORITHM GEN %d.\n", gen);
 
 		/*
@@ -332,7 +302,7 @@ BINARY_LIST genetic_algorithm(Graph &g, int np, float crossover, float mutation_
 			stable_iterations++;
 			printf("Stabilizing %d/%d.\n", stable_iterations, stability);
 
-			if (stable_iterations >= stability) { // the end
+			if (stable_iterations >= stability) { // stop condition
 				BINARY_LIST best = population.front();
 				if (verify_solution(g, best)) {
 					if (debug) printf("Finishing after %d stable iterations.\nBest solution: [%d].\n", stable_iterations, cost(best));
@@ -343,8 +313,6 @@ BINARY_LIST genetic_algorithm(Graph &g, int np, float crossover, float mutation_
 				}
 				
 			}
-		} else { // wrong
-			error("ERROR: Best fitness shouldn't go down.");
 		}
 
 		gen++;
