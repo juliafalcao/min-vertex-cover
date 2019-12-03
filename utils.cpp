@@ -62,29 +62,6 @@ long elapsed_time(TIMESTAMP since) {
 	return dt;
 }
 
-
-/*
-comparator to use for sorting
-*/
-bool most_values_comparator(const INT_LIST_PAIR &a, const INT_LIST_PAIR &b) {
-	return a.second.size() != b.second.size() ? a.second.size() > b.second.size() : a.first < b.first;
-}
-
-/*
-print any ADJ_PAIR_LIST
-*/
-void print(ADJ_PAIR_LIST adj) {
-	for (auto it = adj.begin(); it != adj.end(); it++) {
-		cout << it->first << ": { ";
-		
-		for (auto v_it = it->second.begin(); v_it != it->second.end(); v_it++) {
-			cout << *v_it << " ";
-		}
-
-		cout << "}" << endl;
-	}
-}
-
 /*
 print set of integers as { 1 2 3 }
 */
@@ -220,4 +197,8 @@ INT_SET symmetric_difference(INT_SET A, INT_SET B) {
 
 float randf(float min, float max) {
 	return  (max - min) * ((((float) rand()) / (float) RAND_MAX)) + min;
+}
+
+int rng(int i) {
+	return rand() % i;
 }

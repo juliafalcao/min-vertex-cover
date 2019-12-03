@@ -1,112 +1,61 @@
 #include "main.h"
 
-#define GRAPHS_PATH "test_data/clique_complements/"
+#define GRAPHS_PATH "instances/"
 
-int main(void) {
-	STR_LIST test_filenames = {};
-	ifstream file;
-	file.open("test_filenames.txt", std::ifstream::in);
-    string line;
-    while (getline(file, line))	test_filenames.push_back(line);
+int main(int argc, char *argv[]) {
+	int pop, stability;
+	float crossover, mutation;
+	string instance;
+	
+	if (argc == 1) {
+		error("No instance name passed.\n");
+	} else if (argc == 2) { // only program name and instance name: use default genetic algorithm params
+		instance = argv[1];
+		pop = 60;
+		crossover = 0.7;
+		mutation = 0.1;
+		stability = 5;
 
-	/* load actual instances and run method */
-	ofstream outfile;
-	string outfilename = "results/genetic.csv";
-	outfile.open(outfilename, std::ofstream::out | std::ofstream::app);
-	if (!outfile.is_open()) error("Error opening CSV file to output results.\n");
+		printf("Instance: %s. Using default genetic algorithm params.\nPopulation size = %d\nCrossover percentage = %.2f\nMutation probability = %.2f\nMax stable instances: %d\n", instance.c_str(), pop, crossover, mutation, stability);
 
-	outfile << "instance,population,crossover,mutation,stability,runtime,result\n"; // csv header
-	outfile.close();
+	} else if (argc == 6) { // all params passed: parse 'em
+		instance = argv[1];
+		pop = stoi(argv[2]);
+		crossover = stof(argv[3]);
+		mutation = stof(argv[4]);
+		stability = stoi(argv[5]);
 
-	string DEBUG = ""; // instance name to test
-	for (auto it = test_filenames.begin(); it != test_filenames.end(); it++) { // all instances
-		if (DEBUG != "" && *it != DEBUG) continue;
+		printf("Instance: %s. Population size = %d\nCrossover percentage = %.2f\nMutation probability = %.2f\nMax stable instances = %d\n", instance.c_str(), pop, crossover, mutation, stability);
 
-		Graph g = Graph(GRAPHS_PATH, *it);
-		string instance = g.get_name();
-		printf("\nCURRENT INSTANCE: %s\n", instance.c_str());
-
-		/* run method and store result */
-		int pop = 50;
-		float crossover = 0.7;
-		float mutation = 0.1;
-		int stability = 5;
-
-		TIMESTAMP t0 = time();
-		BINARY_LIST mvc = genetic_algorithm(g, pop, crossover, mutation, stability, false);
-		long runtime = elapsed_time(t0);
-
-		if (mvc == BINARY_LIST_NULL) error("Method returned error -> " + instance + " possibly didn't pass vertex cover verification.");
-		
-		int mvc_size = cost(mvc);
-		printf("[%s - size %d] Returned solution: %d vertices.\n", instance.c_str(), g.get_n(), mvc_size);
-
-		// record in csv file
-		outfile.open(outfilename, std::ofstream::out | std::ofstream::app);
-		char* buffer;
-		sprintf(buffer, "%s,%d,%.2f,%.2f,%d,%d,%d\n", instance.c_str(), pop, crossover, mutation, stability, runtime, mvc_size);
-		outfile << buffer;
-
-		outfile.close();
+	} else { // wrong number of params
+		error("Wrong number of command line params.\nCORRECT: gen.exe <instance> <population_size> <crossover> <mutation> <stability>\nEXAMPLE: ./gen keller5 60 0.7 0.1 5\n");
 	}
 
 
-	if (outfile.is_open()) outfile.close();
-	return 0;
+	printf("\nConstructing graph %s from %s.txt...\n", instance.c_str(), instance.c_str());
+	Graph g = Graph(GRAPHS_PATH, instance + ".txt");
 
-	return 0;
-}
+	printf("Graph ready.\n");
 
-int grasp_main(void) {
-	// get filenames of all instances from dir
-	STR_LIST filenames = list_dir(GRAPHS_PATH);
-	
-	// get filenames of separated test instances
-	STR_LIST test_filenames = {};
-	ifstream file;
-	file.open("test_filenames.txt", std::ifstream::in);
-    string line;
-    while (getline(file, line))	test_filenames.push_back(line);
+	TIMESTAMP t0 = time();
+	BINARY_LIST mvc = genetic_algorithm(g, pop, crossover, mutation, stability, true);
+	long runtime = elapsed_time(t0);
+	int mvc_size = cost(mvc);
 
-	/* load actual instances and run method */
+	printf("[Graph %s - size %d] Returned solution: %d vertices (%dms).\n", instance.c_str(), g.get_n(), mvc_size, runtime);
+
+	/* output file */
 	ofstream outfile;
-	string outfilename = "results/grasp-pr-2.csv";
+	string outfilename = "output.csv";
 	outfile.open(outfilename, std::ofstream::out | std::ofstream::app);
-	if (!outfile.is_open()) error("Error opening CSV file to output results.\n");
 
-	outfile << "instance,max_time,max_it,alpha,max_elite,runtime,mvc_size\n"; // csv header
-	outfile.close();
-
-	string DEBUG = ""; // instance name to test
-	for (auto it = filenames.begin(); it != filenames.end(); it++) { // all instances
-		if (DEBUG != "" && *it != DEBUG) continue;
-
-		Graph g = Graph(GRAPHS_PATH, *it);
-		string instance = g.get_name();
-		printf("\nCURRENT INSTANCE: %s\n", instance.c_str());
-
-		/* run method and store result */
-		float alpha = 0.3;
-		int max_time = 2*60*1000; // 2min
-		int max_it = 30;
-		int max_elite = 5;
-	
-		TIMESTAMP t0 = time();
-		INT_SET mvc = grasp_pr(g, alpha, max_time, max_it, max_elite, true);
-		// INT_SET mvc = grasp(g, alpha, max_time, max_it, true);
-		long runtime = elapsed_time(t0);
-
-		if (mvc == INT_SET_NULL) error("Method returned error -> " + instance + " possibly didn't pass vertex cover verification.");
-		
-		int mvc_size = mvc.size();
-		printf("Returned MVC: %d vertices.\n", mvc_size);
-
-		// record in csv file
-		outfile.open(outfilename, std::ofstream::out | std::ofstream::app);
-		outfile << instance.c_str() << "," << max_time << "," << max_it << "," << alpha << "," << max_elite << "," << runtime << "," << mvc_size << endl;
+	if (outfile.is_open()) {
+		outfile << instance.c_str() << "," << pop << "," << crossover << "," << mutation << "," << stability << "," << runtime << "," << mvc_size << endl;
+		printf("Test result written to output.csv.\n");
 		outfile.close();
+	} else {
+		printf("Could not create/open output.csv to append results.\n");
 	}
 
-	if (outfile.is_open()) outfile.close();
 	return 0;
 }

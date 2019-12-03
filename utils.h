@@ -20,7 +20,7 @@ using namespace std::chrono;
 #define TIMESTAMP time_point<system_clock>
 #define INT_SET_NULL INT_SET{-1} // to be used when errors happen in functions that return INT_SET
 #define BINARY_LIST_NULL BINARY_LIST{-1}
-#define BINARY_SOLUTIONS_NULL BINARY_SOLUTIONS{BINARY_LIST_NULL}
+#define SOLUTIONS_LIST_NULL SOLUTIONS_LIST{BINARY_LIST_NULL}
 #define INT_MAX 2147483647
 
 /* custom types */
@@ -33,7 +33,7 @@ typedef set<int> INT_SET;
 typedef vector<INT_SET> INT_SET_LIST;
 typedef set<INT_SET> SOLUTION_SET;
 typedef vector<int> BINARY_LIST;
-typedef vector<BINARY_LIST> BINARY_SOLUTIONS;
+typedef vector<BINARY_LIST> SOLUTIONS_LIST;
 typedef set<BINARY_LIST> BINARY_LIST_SET;
 
 
@@ -65,5 +65,6 @@ string str(INT_LIST vec);
 
 /* random */
 float randf(float min, float max);
+int rng(int i);
 
 #endif

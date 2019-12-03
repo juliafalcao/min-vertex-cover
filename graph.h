@@ -21,7 +21,7 @@ private:
 	bool directed; // directed or undirected graph
 	int n; // number of vertices (numbered from 0 to n-1)
 	int m; // number of edges
-	string file_suffix_to_remove = ".clq-compliment.txt";
+	string file_suffix_to_remove = ".txt";
 
 public:
 	INT_PAIR_LIST edges; // list of edges

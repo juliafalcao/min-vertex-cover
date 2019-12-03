@@ -3,21 +3,17 @@
 /*
 verification algorithm
 */
-bool verify_vertex_cover(Graph &g, INT_SET cover) {
+bool verify_vertex_cover(Graph &g, INT_SET Vc) {
 	for (auto it = g.edges.begin(); it != g.edges.end(); it++) {
-		if (find(cover.begin(), cover.end(), it->first) == cover.end() 
-		&& find(cover.begin(), cover.end(), it->second) == cover.end()) {
+		INT_SET ev = {it->first, it->second};
+
+		if (find_first_of(Vc.begin(), Vc.end(), ev.begin(), ev.end()) == Vc.end()) {
 			// neither vertex is in vertex cover: edge isn't covered
 			return false;
 		}
 	}
 
 	return true;
-}
-
-// aux
-int rng(int i) {
-	return rand() % i;
 }
 
 /*
@@ -27,9 +23,10 @@ iterates through all edges and, if the edge is uncovered, adds its vertex with t
 INT_SET greedy(Graph &g, int seed, bool debug) {
 	INT_SET Vc;
 	INT_PAIR current_edge;
-	int degree_a = 0, degree_b = 0, chosen = -1, a = -1, b = -1;
+	int degree_a = 0, degree_b = 0, a = -1, b = -1;
 	
-	INT_PAIR_LIST edges = g.get_edges_copy();
+	INT_PAIR_LIST edges = g.edges; // won't be altered
+
 	if (seed) { // shuffles array if seed is not 0
 		srand(seed);
 		random_shuffle(edges.begin(), edges.end(), rng);
@@ -37,14 +34,13 @@ INT_SET greedy(Graph &g, int seed, bool debug) {
 	}
 
 	for (auto it = edges.begin(); it != edges.end(); it++) {
-		a = it->first;
-		b = it->second;
+		a = it->first, b = it->second;
+		INT_SET ev = {a, b};
 
-		if ((find(Vc.begin(), Vc.end(), a) == Vc.end()) && (find(Vc.begin(), Vc.end(), b) == Vc.end())) { // edge is yet uncovered
-			degree_a = g.degree(a);
-			degree_b = g.degree(b);
+		if (find_first_of(Vc.begin(), Vc.end(), ev.begin(), ev.end()) == Vc.end()) {
+			// none of the edge vertices are in vertex cover
 
-			if (degree_a > degree_b) {
+			if (g.degree(a) > g.degree(b)) {
 				Vc.insert(a);
 				if (debug) printf("Added %d to vertex cover.\n", a);
 			} else {
@@ -54,7 +50,6 @@ INT_SET greedy(Graph &g, int seed, bool debug) {
 		}
 	}
 
-	print(Vc);
 	return Vc;
 }
 
@@ -286,32 +281,21 @@ INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug) {
 	/* get vertex list and sort it by highest degree first */
 	INT_LIST vertices = g.get_vertex_list();
 	vertices = g.sort_vertices_by_higher_degree(vertices);
-	int min_degree = g.min_degree(), max_degree = g.max_degree();
-
-	if (g.degree(vertices[0]) != max_degree || g.degree(vertices[vertices.size()-1]) != min_degree) { // validate sorting
-		error("Vertices list wasn't sorted properly.");
-	}
+	if (debug) printf("Vertices list sorted.\n");
+	int min_degree, max_degree;
 
 	INT_LIST RCL = {};
 	int min_accepted_degree = -1, v = -1;
 	if (seed) srand(seed); // seed generator once
-	int max_it = g.get_m(), it = 0;
+	int m = g.get_m(), it = 0;
 
 	/* main loop */
-	while (it < max_it) {
-
-		/* build RCL */
-		RCL.clear();
-		
+	while (it < m) {		
 		if (alpha == 1.0) {
-			for (auto v_it = vertices.begin(); v_it != vertices.end(); v_it++) {
-				if (find(Vc.begin(), Vc.end(), *v_it) != Vc.end()) continue;
-				RCL.push_back(*v_it);
-			}
+			RCL = INT_LIST(vertices.begin(), vertices.end()); // copy of vertices
 		} else {
 			max_degree = g.degree(vertices.front());
 			min_degree = g.degree(vertices.back());
-			// min_accepted_degree = min_degree + (int) floor(alpha*(max_degree-min_;degree)); // (!)
 			min_accepted_degree = max_degree - (int) floor(alpha*(max_degree-min_degree));
 
 			if (debug) printf("Max degree = %d, min degree = %d, min accepted = %d\n", max_degree, min_degree, min_accepted_degree);
@@ -322,7 +306,10 @@ INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug) {
 			}
 		}
 
-		if (RCL.size() == 0) break;
+		if (!RCL.size()) break;
+
+		if (debug) printf("RCL size: %d\n", RCL.size());
+
 
 		/* select random vertex from RCL and add it to cover */
 		v = RCL[rand() % RCL.size()];
@@ -333,6 +320,7 @@ INT_SET semi_greedy(Graph &g, int seed, float alpha, bool debug) {
 		/* if it's a complete cover, stop running */
 		if (verify_vertex_cover(g, Vc)) break;
 
+		RCL.clear();
 		it++;
 	}
 

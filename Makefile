@@ -1,7 +1,7 @@
-all: main
+all: gen
 
-main: main.cpp utils graph heuristics genetic
-	g++ -g main.cpp -o main utils graph heuristics genetic
+gen: main.cpp utils graph heuristics genetic
+	g++ -g main.cpp -o gen utils graph heuristics genetic
 
 utils: utils.cpp
 	g++ -g -c utils.cpp -o utils

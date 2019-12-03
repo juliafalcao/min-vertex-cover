@@ -7,7 +7,6 @@ Graph::Graph(string path, string filename, bool directed) {
 
 	int s = this->file_suffix_to_remove.length();
 	this->name = filename.substr(0, filename.length()-s);
-
 	make_graph(path, filename);
 	this->m = this->edges.size();
 	this->vertices = this->get_vertex_list();
